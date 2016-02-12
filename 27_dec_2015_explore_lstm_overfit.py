@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # In[13]:
@@ -15,36 +14,20 @@ import matplotlib.pyplot as plt
 
 
 
-sys.path.append(r'C:\Users\ORI\Documents\IDC-non-sync\Thesis\PythonApplication1\OriKerasExtension')
-#import OriKerasExtension
-import ThesisHelper
-#reload(OriKerasExtension)
-reload(ThesisHelper)
-from   ThesisHelper import LoadSingleSubjectPython, readCompleteMatFile, ExtractDataVer4
-import P300Prediction
-reload(P300Prediction)
-from P300Prediction import accuracy_by_repetition, create_target_table
 
-
-sys.path.append(r'C:\Users\ORI\Documents\IDC-non-sync\Thesis\PythonApplication1\OriKerasExtension')
-#import OriKerasExtension
-import ThesisHelper
+from OriKerasExtension import ThesisHelper
+from OriKerasExtension.ThesisHelper import LoadSingleSubjectPython, readCompleteMatFile, ExtractDataVer4
+from OriKerasExtension.P300Prediction import accuracy_by_repetition, create_target_table
 from sklearn.metrics import roc_curve, auc, roc_auc_score
-import P300Prediction
-from keras.layers.recurrent import LSTM
 from keras.callbacks import ModelCheckpoint
 from keras.utils.np_utils import to_categorical
 from scipy import stats
 from sklearn.cross_validation import StratifiedShuffleSplit
 
-#reload(OriKerasExtension)
-reload(ThesisHelper)
-from ThesisHelper import LoadSingleSubjectPython, readCompleteMatFile, ExtractDataVer4
-from sklearn.utils import shuffle
-from sklearn.cross_validation import train_test_split
 
-reload(P300Prediction)
-from P300Prediction import accuracy_by_repetition, create_target_table
+reload(ThesisHelper)
+
+from sklearn.utils import shuffle
 
 
 # [all_target, all_non_target] = LoadSingleSubjectPython(r'C:\Users\ORI\Documents\Thesis\dataset_all\RSVP_Color116msVPfat.mat')
@@ -102,14 +85,14 @@ def create_compile_cnn_model():
     model.compile(loss='categorical_crossentropy', optimizer='sgd')
     return model
 
-def create_compile_lstm_model():
 
+def create_compile_lstm_model():
     '''
     define the neural network model:
     '''
     model_lstm = Sequential()
 
-    model_lstm.add(LSTM(input_dim=55, output_dim=20,return_sequences=False))
+    model_lstm.add(LSTM(input_dim=55, output_dim=20, return_sequences=False))
     model_lstm.add(Dense(2))
     model_lstm.add(Activation('softmax'))
     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
@@ -118,19 +101,19 @@ def create_compile_lstm_model():
 
 
 def create_compile_dense_model():
-
     '''
     define the neural network model:
     '''
     model_lstm = Sequential()
-    model_lstm.add(keras.layers.core.Flatten(input_shape=(55,20)))
-    model_lstm.add(Dense(input_dim=55*20, output_dim=20))
+    model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 20)))
+    model_lstm.add(Dense(input_dim=55 * 20, output_dim=20))
     model_lstm.add(Activation('tanh'))
     model_lstm.add(Dense(2))
     model_lstm.add(Activation('softmax'))
     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     return model_lstm
+
 
 # def down_sample_data()
 
@@ -149,8 +132,6 @@ def create_evaluation_data(file_name, down_samples_param):
 
 
 def downsample_data(data, number_of_original_samples, down_samples_param):
-
-
     new_number_of_time_stamps = number_of_original_samples / down_samples_param
 
 
@@ -168,13 +149,11 @@ def create_train_data(file_name, down_samples_param):
 
     others = ["RSVP_Color116msVPgcd.mat"]
 
-
     for other_file_name in others:
         file_name = r'C:\Users\ORI\Documents\Thesis\dataset_all\{0}'.format(other_file_name)
         gcd_res = readCompleteMatFile(file_name)
         last_time_stamp = 800
         fist_time_stamp = -200
-
 
         data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
                                         gcd_res['target'], fist_time_stamp, last_time_stamp)
@@ -190,7 +169,7 @@ def create_train_data(file_name, down_samples_param):
         # for new_i, i in enumerate(range(0, 200, new_number_of_time_stamps)):
         #     temp_data_for_eval[:, new_i, :] = np.mean(data_for_eval[0][:, range(i, (i + new_number_of_time_stamps)), :], axis=1)
         print data_for_eval[0].shape
-        temp_data_for_eval = downsample_data(data_for_eval[0],data_for_eval[0].shape[1], down_samples_param)
+        temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
 
         positive_train_data_gcd = temp_data_for_eval[
             np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 1], axis=0)]
@@ -220,7 +199,8 @@ def create_data_for_compare_by_repetition(file_name):
                        stimulus=gcd_res['stimulus'][gcd_res['train_mode'] != 1])
     return sub_gcd_res
 
-#shuffeled_samples, suffule_tags = create_train_data(file_name=None, down_samples_param=5)
+
+# shuffeled_samples, suffule_tags = create_train_data(file_name=None, down_samples_param=5)
 # shuffeled_samples, suffule_tags = create_train_data(file_name=None, down_samples_param=20)
 model = create_compile_lstm_model()
 original_weights = model.get_weights()
@@ -256,11 +236,12 @@ for subject_name in data_set_locations:
         print stats.zscore(shuffeled_samples[sss[0][0]], axis=1).shape
         model.fit(stats.zscore(shuffeled_samples[sss[0][0]], axis=1), suffule_tags[sss[0][0]],
                   nb_epoch=20, show_accuracy=True, verbose=1, validation_data=(
-            stats.zscore(shuffeled_samples[sss[0][1]], axis=1), suffule_tags[sss[0][1]]),
+                stats.zscore(shuffeled_samples[sss[0][1]], axis=1), suffule_tags[sss[0][1]]),
                   class_weight={0: 1, 1: 50},
                   callbacks=[checkpointer])
 
-        test_data_gcd, test_target_gcd = create_evaluation_data(file_name=file_name, down_samples_param=down_sample_param)
+        test_data_gcd, test_target_gcd = create_evaluation_data(file_name=file_name,
+                                                                down_samples_param=down_sample_param)
 
         test_prediction = model.predict(stats.zscore(test_data_gcd, axis=1), verbose=1)
 
@@ -301,7 +282,8 @@ import keras
 # In[73]:
 
 import theano
-result_func = theano.function([model.get_input(train=False)], model.layers[-1].get_output(train=False)[:,0])
+
+result_func = theano.function([model.get_input(train=False)], model.layers[-1].get_output(train=False)[:, 0])
 # convolutions = convout1_f(reshaped[img_to_visualize: img_to_visualize+1])
 
 
@@ -309,86 +291,79 @@ result_func = theano.function([model.get_input(train=False)], model.layers[-1].g
 
 # result_func.grad
 from theano import tensor as T
-grad_func = T.grad(model.layers[-1].get_output(train=False)[0,0], model.get_input(train=False) )
+
+grad_func = T.grad(model.layers[-1].get_output(train=False)[0, 0], model.get_input(train=False))
 
 
 # In[110]:
 
-result_func(stats.zscore(shuffeled_samples[sss[0][0]], axis=1).astype('float32')[0].reshape(1,40,55)).shape
+result_func(stats.zscore(shuffeled_samples[sss[0][0]], axis=1).astype('float32')[0].reshape(1, 40, 55)).shape
 # print stats.zscore(shuffeled_samples[sss[0][0]], axis=1).astype('float32')[0].reshape(1,40,55).shape
 
 dlogistic = theano.function([model.get_input(train=False)], grad_func)
 
 
-
-# In[186]:
-
-get_ipython().magic(u'matplotlib inline')
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[38].reshape(1,40,55)
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[38].reshape(1, 40, 55)
 
 temp = dlogistic(data_to_diagnots)
 temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
+plt.imshow(temp[0, :, :].T, interpolation='none')
 plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
 plt.show()
 
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[39].reshape(1,40,55)
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[39].reshape(1, 40, 55)
 
 temp = dlogistic(data_to_diagnots)
 temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
+plt.imshow(temp[0, :, :].T, interpolation='none')
 plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
 plt.show()
 
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[40].reshape(1,40,55)
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[40].reshape(1, 40, 55)
 
 temp = dlogistic(data_to_diagnots)
 temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
+plt.imshow(temp[0, :, :].T, interpolation='none')
 plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
 plt.show()
 
-
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[74].reshape(1,40,55)
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[74].reshape(1, 40, 55)
 
 temp = dlogistic(data_to_diagnots)
 temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
+plt.imshow(temp[0, :, :].T, interpolation='none')
 plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
 plt.show()
 
-
-
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[371].reshape(1,40,55)
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[371].reshape(1, 40, 55)
 
 temp = dlogistic(data_to_diagnots)
 temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
+plt.imshow(temp[0, :, :].T, interpolation='none')
 plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
-plt.show()
-
-
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[264].reshape(1,40,55)
-
-temp = dlogistic(data_to_diagnots)
-temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
-plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
 plt.show()
 
-data_to_diagnots =  stats.zscore(test_data_gcd, axis=1).astype('float32')[265].reshape(1,40,55)
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[264].reshape(1, 40, 55)
 
 temp = dlogistic(data_to_diagnots)
 temp.shape
-plt.imshow(temp[0,:,:].T, interpolation='none')
+plt.imshow(temp[0, :, :].T, interpolation='none')
 plt.show()
-plt.imshow(data_to_diagnots[0,:,:].T, interpolation='none')
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
+plt.show()
+
+data_to_diagnots = stats.zscore(test_data_gcd, axis=1).astype('float32')[265].reshape(1, 40, 55)
+
+temp = dlogistic(data_to_diagnots)
+temp.shape
+plt.imshow(temp[0, :, :].T, interpolation='none')
+plt.show()
+plt.imshow(data_to_diagnots[0, :, :].T, interpolation='none')
 plt.show()
 
 
@@ -404,7 +379,7 @@ model.layers[-1].get_output(train=False)[0]
 
 # In[43]:
 
-result_func[0,:]
+result_func[0, :]
 
 
 # In[57]:
@@ -413,22 +388,22 @@ result_func[0,:]
 x = T.dmatrix('x')
 y = T.dmatrix('y')
 z = x + y
-f = theano.function([x, y], z[:,0])
+f = theano.function([x, y], z[:, 0])
 
 
 # In[58]:
 
-f(np.asarray([[1,2]]), np.asarray([[1,2]]))
+f(np.asarray([[1, 2]]), np.asarray([[1, 2]]))
 
 
 # In[66]:
 
-T.grad(z[:,0],x)
+T.grad(z[:, 0], x)
 
 
 # In[127]:
 
-np.where(test_prediction[:,1 ] > 0.12)
+np.where(test_prediction[:, 1] > 0.12)
 
 
 # In[106]:
@@ -460,14 +435,17 @@ middle_layer_test_data = precalssify_layer(stats.zscore(test_data_gcd, axis=1).a
 # In[168]:
 
 import matplotlib.cm as cm
+
 for i in range(100):
-    plt.subplot(1,2,1)
-    plt.imshow(np.hstack([middle_layer_test_data[i*30:(i+1)*30,:], test_target_gcd.reshape(test_target_gcd.shape[0],1)[i*30:(i+1)*30]]) ,interpolation='none')
-    plt.subplot(1,2,2)
-#     print test_target_gcd.reshape(test_target_gcd.shape[0],1)
-    plt.imshow(test_target_gcd.reshape(test_target_gcd.shape[0],1)[i*30:(i+1)*30],cmap = cm.Greys_r)
+    plt.subplot(1, 2, 1)
+    plt.imshow(np.hstack([middle_layer_test_data[i * 30:(i + 1) * 30, :],
+                          test_target_gcd.reshape(test_target_gcd.shape[0], 1)[i * 30:(i + 1) * 30]]),
+               interpolation='none')
+    plt.subplot(1, 2, 2)
+    #     print test_target_gcd.reshape(test_target_gcd.shape[0],1)
+    plt.imshow(test_target_gcd.reshape(test_target_gcd.shape[0], 1)[i * 30:(i + 1) * 30], cmap=cm.Greys_r)
     plt.show()
-#     plt.subplot(1,2,1)
+# plt.subplot(1,2,1)
 #     plt.imshow(middle_layer_test_data[30:60,:],interpolation='none')
 #     plt.subplot(1,2,2)
 #     plt.imshow(test_target_gcd.reshape(test_target_gcd.shape[0],1)[30:60], cmap = cm.Greys_r)
@@ -478,7 +456,7 @@ for i in range(100):
 
 # In[152]:
 
-9200/20
+9200 / 20
 
 
 # In[179]:
@@ -498,21 +476,6 @@ plt.hist(lda_res[test_target_gcd == 0])
 plt.show()
 
 
-# pca = PCA(n_components=3)
-# temp = pca.fit_transform(middle_layer_test_data)
-
-
-# In[176]:
-
-temp.shape
-
-
-# In[178]:
-
-plt.scatter(temp[:,0], temp[:,1], temp[:,2], c=test_target_gcd)
-
-
-# In[ ]:
 
 
 
