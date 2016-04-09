@@ -34,6 +34,9 @@ from sklearn.utils import shuffle
 
 
 
+
+
+
 # all_samples = np.vstack((all_target,all_non_target))
 
 
@@ -63,7 +66,7 @@ def create_compile_cnn_model():
     number_of_time_stamps = 20
     number_of_out_channels = 10
     number_of_in_channels = 55
-    length_of_time_axe_mask = 10
+    #length_of_time_axe_mask = 10
 
     model.add(Convolution2D(nb_filter=10,
                             nb_col=number_of_out_channels,
