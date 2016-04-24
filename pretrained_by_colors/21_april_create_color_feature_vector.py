@@ -19,152 +19,132 @@ import matplotlib.pyplot as plt
 data_source_dir = r'C:\Users\ORI\Documents\Thesis\dataset_all\\'
 __author__ = 'ORI'
 # I should learn how to load libraries in a more elegant way
-ABC_list = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
-            'v', 'w', 'x', 'y', 'z', '_', '.', '!', '<']
+# ABC_list = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
+#             'v', 'w', 'x', 'y', 'z', '_', '.', '!', '<']
 
-
-
-def create_color_dictionary():
-    color_dictionary_ = dict()
-    for letter_i, letter in enumerate(ABC_list):
-        print letter_i
-        #     red (fRyGk<)
-        if letter in list('fRyGk<'.lower()):
-            color_dictionary_[letter_i + 1] = 0
-        # blue (iSwc_N)
-        if letter in list('iSwc_N'.lower()):
-            color_dictionary_[letter_i + 1] = 1
-        # green (TBMqAH),
-        if letter in list('TBMqAH'.lower()):
-            color_dictionary_[letter_i + 1] = 2
-        # black (LdvOz.).
-        if letter in list('LdvOz.'.lower()):
-            color_dictionary_[letter_i + 1] = 3
-        # white (pJUX!E)
-        if letter in list('pJUX!E'.lower()):
-            color_dictionary_[letter_i + 1] = 4
-    return color_dictionary_
-# print color_dictionary[27]
+from experiments.pretrained_by_colors.deep_models import create_compile_lstm_model_letter, \
+    create_small_compile_dense_model_color
+from experiments.pretrained_by_colors.color_utils import create_color_dictionary, get_color_from_stimuli
 
 '''
 define the neural network model:
 '''
 
-
-def create_compile_cnn_model():
-    model = Sequential()
-
-    number_of_time_stamps = 20
-    number_of_out_channels = 10
-    number_of_in_channels = 55
-
-    model.add(Convolution2D(nb_filter=10,
-                            nb_col=number_of_out_channels,
-                            nb_row=1,
-                            input_shape=(1, number_of_time_stamps, number_of_in_channels),
-                            border_mode='same',
-                            init='glorot_normal'))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(1, number_of_in_channels)))
-    model.add(
-        Convolution2D(nb_filter=number_of_out_channels, nb_row=6, nb_col=1, border_mode='same', init='glorot_normal'))
-    model.add(MaxPooling2D(pool_size=(20, 1)))
-    model.add(Activation('relu'))
-    model.add(Flatten())
-    model.add(Dense(100))
-    model.add(Activation('relu'))
-    model.add(Dense(2))
-    model.add(Activation('softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='sgd')
-    return model
-
-
-def create_compile_lstm_model():
-    """
-    define the neural network model:
-    :return:
-    """
-
-    model_lstm = Sequential()
-
-    model_lstm.add(LSTM(input_dim=55, output_dim=20, return_sequences=True))
-    model_lstm.add(Dropout(0.3))
-    model_lstm.add(LSTM(input_dim=20, output_dim=20, return_sequences=False))
-    model_lstm.add(Dense(2, W_regularizer=l2(0.06)))
-    model_lstm.add(Activation('softmax'))
-    model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    return model_lstm
-
-
-def create_compile_lstm_model_letter():
-    """
-    define the neural network model:
-    """
-    model_lstm = Sequential()
-
-    model_lstm.add(LSTM(input_dim=55, output_dim=20, return_sequences=True))
-    model_lstm.add(Dropout(0.01))
-    model_lstm.add(LSTM(input_dim=20, output_dim=20, return_sequences=False))
-    #     model_lstm.add(Dropout(0.01))
-    #     model_lstm.add(LSTM(input_dim=20, output_dim=20,return_sequences=False))
-    model_lstm.add(Dense(5, W_regularizer=l2(0.006)))
-    model_lstm.add(Activation('softmax'))
-    model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    return model_lstm
-
-
-def create_compile_dense_model():
-    """
-    define the neural network model:
-    """
-    model_lstm = Sequential()
-    model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 100)))
-    model_lstm.add(Dense(input_dim=55 * 100, output_dim=30, W_regularizer=l2(0.06)))
-    model_lstm.add(Activation('tanh'))
-    model_lstm.add(Dense(2))
-    model_lstm.add(Activation('softmax'))
-    model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    return model_lstm
-
-
-def create_small_compile_dense_model():
-    """
-    define the neural network model:
-    """
-    model_lstm = Sequential()
-    model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 25)))
-    model_lstm.add(Dense(input_dim=55 * 25, output_dim=20))
-    model_lstm.add(Dropout(0.3))
-    model_lstm.add(Activation('tanh'))
-    model_lstm.add(Dense(output_dim=20, W_regularizer=l2(0.06)))
-    model_lstm.add(Activation('tanh'))
-    model_lstm.add(Dense(2))
-    model_lstm.add(Activation('softmax'))
-    model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    return model_lstm
-
-
-def create_small_compile_dense_model_color():
-    """
-    define the neural network model:
-    """
-    model_lstm = Sequential()
-    model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 25)))
-    model_lstm.add(Dense(input_dim=55 * 25, output_dim=20))
-    model_lstm.add(Dropout(0.3))
-    model_lstm.add(Activation('tanh'))
-    model_lstm.add(Dense(output_dim=20, W_regularizer=l2(0.06)))
-    model_lstm.add(Activation('tanh'))
-    model_lstm.add(Dense(5))
-    model_lstm.add(Activation('softmax'))
-    model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    return model_lstm
-
+#
+# def create_compile_cnn_model():
+#     model = Sequential()
+#
+#     number_of_time_stamps = 20
+#     number_of_out_channels = 10
+#     number_of_in_channels = 55
+#
+#     model.add(Convolution2D(nb_filter=10,
+#                             nb_col=number_of_out_channels,
+#                             nb_row=1,
+#                             input_shape=(1, number_of_time_stamps, number_of_in_channels),
+#                             border_mode='same',
+#                             init='glorot_normal'))
+#     model.add(Activation('relu'))
+#     model.add(MaxPooling2D(pool_size=(1, number_of_in_channels)))
+#     model.add(
+#         Convolution2D(nb_filter=number_of_out_channels, nb_row=6, nb_col=1, border_mode='same', init='glorot_normal'))
+#     model.add(MaxPooling2D(pool_size=(20, 1)))
+#     model.add(Activation('relu'))
+#     model.add(Flatten())
+#     model.add(Dense(100))
+#     model.add(Activation('relu'))
+#     model.add(Dense(2))
+#     model.add(Activation('softmax'))
+#     model.compile(loss='categorical_crossentropy', optimizer='sgd')
+#     return model
+#
+#
+# def create_compile_lstm_model():
+#     """
+#     define the neural network model:
+#     :return:
+#     """
+#
+#     model_lstm = Sequential()
+#
+#     model_lstm.add(LSTM(input_dim=55, output_dim=20, return_sequences=True))
+#     model_lstm.add(Dropout(0.3))
+#     model_lstm.add(LSTM(input_dim=20, output_dim=20, return_sequences=False))
+#     model_lstm.add(Dense(2, W_regularizer=l2(0.06)))
+#     model_lstm.add(Activation('softmax'))
+#     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+#
+#     return model_lstm
+#
+#
+# def create_compile_lstm_model_letter():
+#     """
+#     define the neural network model:
+#     """
+#     model_lstm = Sequential()
+#
+#     model_lstm.add(LSTM(input_dim=55, output_dim=20, return_sequences=True))
+#     model_lstm.add(Dropout(0.01))
+#     model_lstm.add(LSTM(input_dim=20, output_dim=20, return_sequences=False))
+#     #     model_lstm.add(Dropout(0.01))
+#     #     model_lstm.add(LSTM(input_dim=20, output_dim=20,return_sequences=False))
+#     model_lstm.add(Dense(5, W_regularizer=l2(0.006)))
+#     model_lstm.add(Activation('softmax'))
+#     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+#
+#     return model_lstm
+#
+#
+# def create_compile_dense_model():
+#     """
+#     define the neural network model:
+#     """
+#     model_lstm = Sequential()
+#     model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 100)))
+#     model_lstm.add(Dense(input_dim=55 * 100, output_dim=30, W_regularizer=l2(0.06)))
+#     model_lstm.add(Activation('tanh'))
+#     model_lstm.add(Dense(2))
+#     model_lstm.add(Activation('softmax'))
+#     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+#
+#     return model_lstm
+#
+#
+# def create_small_compile_dense_model():
+#     """
+#     define the neural network model:
+#     """
+#     model_lstm = Sequential()
+#     model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 25)))
+#     model_lstm.add(Dense(input_dim=55 * 25, output_dim=20))
+#     model_lstm.add(Dropout(0.3))
+#     model_lstm.add(Activation('tanh'))
+#     model_lstm.add(Dense(output_dim=20, W_regularizer=l2(0.06)))
+#     model_lstm.add(Activation('tanh'))
+#     model_lstm.add(Dense(2))
+#     model_lstm.add(Activation('softmax'))
+#     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+#
+#     return model_lstm
+#
+#
+# def create_small_compile_dense_model_color():
+#     """
+#     define the neural network model:
+#     """
+#     model_lstm = Sequential()
+#     model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 25)))
+#     model_lstm.add(Dense(input_dim=55 * 25, output_dim=20))
+#     model_lstm.add(Dropout(0.3))
+#     model_lstm.add(Activation('tanh'))
+#     model_lstm.add(Dense(output_dim=20, W_regularizer=l2(0.06)))
+#     model_lstm.add(Activation('tanh'))
+#     model_lstm.add(Dense(5))
+#     model_lstm.add(Activation('softmax'))
+#     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+#
+#     return model_lstm
+#
 
 def create_evaluation_data(gcd_res, down_samples_param):
     data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'], gcd_res['target'],
@@ -187,13 +167,13 @@ def downsample_data(data, number_of_original_samples, down_samples_param):
     return temp_data_for_eval
 
 
-def get_color_from_stimuli(stimulus_vetor, color_dictionary):
-    #     red (fRyGk<),
-    #     white (pJUX!E),
-    #     blue (iSwc_N),
-    #     green (TBMqAH),
-    #     black (LdvOz.).
-    return [color_dictionary[x] for x in stimulus_vetor]
+# def get_color_from_stimuli(stimulus_vetor, color_dictionary):
+#     #     red (fRyGk<),
+#     #     white (pJUX!E),
+#     #     blue (iSwc_N),
+#     #     green (TBMqAH),
+#     #     black (LdvOz.).
+#     return [color_dictionary[x] for x in stimulus_vetor]
 
 
 
@@ -213,6 +193,43 @@ def create_train_data_color(gcd_res, down_samples_param):
     categorical_tags = to_categorical(
         get_color_from_stimuli(gcd_res['stimulus'][gcd_res['train_mode'] != 3], color_dictionary))
 
+    shuffeled_samples, suffule_tags = (all_data, categorical_tags)
+    return shuffeled_samples, suffule_tags
+
+
+def create_train_data(gcd_res, down_samples_param):
+    all_positive_train = []
+    all_negative_train = []
+
+
+    last_time_stamp = 800
+    fist_time_stamp = -200
+
+
+    data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
+                                    gcd_res['target'], fist_time_stamp, last_time_stamp)
+
+
+    print data_for_eval[0].shape
+    temp_data_for_eval = downsample_data(data_for_eval[0],data_for_eval[0].shape[1], down_samples_param)
+
+    positive_train_data_gcd = temp_data_for_eval[
+        np.all([gcd_res['train_mode'] != 3, gcd_res['target'] == 1], axis=0)]
+    negative_train_data_gcd = temp_data_for_eval[
+        np.all([gcd_res['train_mode'] != 3, gcd_res['target'] == 0], axis=0)]
+    all_positive_train.append(positive_train_data_gcd)
+    all_negative_train.append(negative_train_data_gcd)
+
+    positive_train_data_gcd = np.vstack(all_positive_train)
+    negative_train_data_gcd = np.vstack(all_negative_train)
+
+    all_data = np.vstack([positive_train_data_gcd, negative_train_data_gcd])
+
+    all_tags = np.vstack(
+        [np.ones((positive_train_data_gcd.shape[0], 1)), np.zeros((negative_train_data_gcd.shape[0], 1))])
+    categorical_tags = to_categorical(all_tags)
+
+    # shuffeled_samples, suffule_tags = shuffle(all_data, categorical_tags, random_state=0)
     shuffeled_samples, suffule_tags = (all_data, categorical_tags)
     return shuffeled_samples, suffule_tags
 
@@ -293,9 +310,11 @@ if __name__ == "__main__":
     history_mlp = LossHistory()
     all_history = []
 
-    for subject_name in data_set_locations:
+    results = pickle.load(  open( r"C:\git\thesis_clean_v2\experiments\pretrained_by_colors\save_21_april_predict_color.p", "rb" ) )
+    model.set_weights(original_weights)
+    for subject_counter, subject_name in enumerate(data_set_locations):
         file_name = r'C:\Users\ORI\Documents\Thesis\dataset_all\{0}'.format(subject_name)
-        model.set_weights(original_weights)
+        model.set_weights(results[subject_counter]['mlp_hisotry']['weights'])
         model_mlp.set_weights(original_weights_mlp)
         print "subject_name : {0}".format(subject_name)
         gcd_res = readCompleteMatFile(file_name)
@@ -308,9 +327,10 @@ if __name__ == "__main__":
         test_data, test_tags = create_letter_test_data_color(gcd_res, down_samples_param=down_sample_param)
 
         train_history = model.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
-                                  nb_epoch=30, show_accuracy=True, verbose=1,
+                                  nb_epoch=1, show_accuracy=True, verbose=1,
                                   validation_data=(stats.zscore(test_data, axis=1), test_tags),
                                   callbacks=[history])
+        exit()
         train_history_mlp = model_mlp.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
                                           nb_epoch=30, show_accuracy=True, verbose=1,
                                           validation_data=(stats.zscore(test_data, axis=1), test_tags),
@@ -336,4 +356,4 @@ if __name__ == "__main__":
                            weights=model.get_weights())))
         # model.save_weights('{0}_model_weights.h5'.format(subject_name), overwrite=True)
 
-    pickle.dump( all_history, open( "save_21_april_predict_color.p", "wb" ) )
+    # pickle.dump( all_history, open( "save_21_april_predict_color.p", "wb" ) )
