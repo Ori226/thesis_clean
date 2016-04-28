@@ -141,51 +141,94 @@ if __name__ == "__main__":
     history = LossHistory()
     history_mlp = LossHistory()
     all_history = []
-
+    train_data = None
+    train_tags = None
+    test_data = None
+    test_tags = None
     for subject_name in data_set_locations:
         file_name = r'C:\Users\ORI\Documents\Thesis\dataset_all\{0}'.format(subject_name)
-        model.set_weights(original_weights)
-        model_mlp.set_weights(original_weights_mlp)
-        print "subject_name : {0}".format(subject_name)
         gcd_res = readCompleteMatFile(file_name)
         subject_results = dict()
 
         down_sample_param = 8
-        train_data, train_tags = create_train_data_color(gcd_res, down_samples_param=down_sample_param)
-        print train_tags.shape
-        shuffeled_samples, suffule_tags = shuffle(train_data, train_tags, random_state=0)
-        test_data, test_tags = create_letter_test_data_color(gcd_res, down_samples_param=down_sample_param)
-
-        train_history_mlp = model_mlp.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
-                                          nb_epoch=35, show_accuracy=True, verbose=1,
-                                          validation_data=(stats.zscore(test_data, axis=1), test_tags),
-                                          callbacks=[history_mlp])
-
-        train_history = model.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
-                                  nb_epoch=35, show_accuracy=True, verbose=1,
-                                  validation_data=(stats.zscore(test_data, axis=1), test_tags),
-                                  callbacks=[history])
-
-        print history.val_accuracies
-        #         print model.evaluate(stats.zscore(test_data, axis=1), test_tags, show_accuracy=True)
+        single_subjects_train_data, single_subjects_train_tags = create_train_data_color(gcd_res, down_samples_param=down_sample_param)
+        single_subject_test_data, single_subject_test_tags = create_letter_test_data_color(gcd_res, down_samples_param=down_sample_param)
+        if train_data is None:
+            train_data = single_subjects_train_data
+            train_tags = single_subjects_train_tags
+            test_data = single_subject_test_data
+            test_tags = single_subject_test_tags
+        else:
+            train_data = np.vstack([train_data, single_subjects_train_data])
+            train_tags = np.vstack([train_tags, single_subjects_train_tags])
+            test_data = np.vstack([test_data, single_subject_test_data])
+            test_tags = np.vstack([test_tags, single_subject_test_tags])
 
 
 
 
-        all_history.append(dict(subject_name=subject_name,
-                                lstm_history=dict(
-                                val_accuracies=history.val_accuracies,
-                                val_losses=history.val_losses,
-                                train_accuracies=history.train_accuracies,
-                                train_losses=history.train_losses,
-                                weights=model.get_weights()),
-                           mlp_history=dict(
-                                val_accuracies=history_mlp.val_accuracies,
-                                val_losses=history_mlp.val_losses,
-                                train_accuracies=history_mlp.train_accuracies,
-                                train_losses=history_mlp.train_losses,
-                           weights=model_mlp.get_weights())))
 
-        # model.save_weights('{0}_model_weights.h5'.format(subject_name), overwrite=True)
+    model.set_weights(original_weights)
+    model_mlp.set_weights(original_weights_mlp)
+    print "subject_name : {0}".format(subject_name)
+    gcd_res = readCompleteMatFile(file_name)
 
-    pickle.dump( all_history, open( "save_25_april_predict_color_take_3.p", "wb" ) )
+
+    # down_sample_param = 8
+    # train_data, train_tags = create_train_data_color(gcd_res, down_samples_param=down_sample_param)
+    print train_tags.shape
+    shuffeled_samples, suffule_tags = shuffle(train_data, train_tags, random_state=0)
+
+
+    train_history_mlp = model_mlp.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
+                                      nb_epoch=70, show_accuracy=True, verbose=1,
+                                      validation_data=(stats.zscore(test_data, axis=1), test_tags),
+                                      callbacks=[history_mlp])
+
+    train_history = model.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
+                              nb_epoch=70, show_accuracy=True, verbose=1,
+                              validation_data=(stats.zscore(test_data, axis=1), test_tags),
+                              callbacks=[history])
+
+    all_training_history = [dict(
+                        lstm_history=dict(
+                            val_accuracies=history.val_accuracies,
+                            val_losses=history.val_losses,
+                            train_accuracies=history.train_accuracies,
+                            train_losses=history.train_losses,
+                            weights=model.get_weights()),
+                        mlp_history=dict(
+                            val_accuracies=history_mlp.val_accuracies,
+                            val_losses=history_mlp.val_losses,
+                            train_accuracies=history_mlp.train_accuracies,
+                            train_losses=history_mlp.train_losses,
+                            weights=model_mlp.get_weights()))]
+    pickle.dump(all_training_history, open("save_26_april_predict_color_all_subjects_aggregated.p", "wb"))
+    #
+    # subject_results = dict()
+    # for subject_name in data_set_locations:
+    #     file_name = r'C:\Users\ORI\Documents\Thesis\dataset_all\{0}'.format(subject_name)
+    #     test_data, test_tags = create_letter_test_data_color(gcd_res, down_samples_param=down_sample_param)
+    #
+    #     #         print model.evaluate(stats.zscore(test_data, axis=1), test_tags, show_accuracy=True)
+    #
+    #
+    #
+    #
+    #     all_history.append(dict(subject_name=subject_name,
+    #                             lstm_history=dict(
+    #                             val_accuracies=history.val_accuracies,
+    #                             val_losses=history.val_losses,
+    #                             train_accuracies=history.train_accuracies,
+    #                             train_losses=history.train_losses,
+    #                             weights=model.get_weights()),
+    #                        mlp_history=dict(
+    #                             val_accuracies=history_mlp.val_accuracies,
+    #                             val_losses=history_mlp.val_losses,
+    #                             train_accuracies=history_mlp.train_accuracies,
+    #                             train_losses=history_mlp.train_losses,
+    #                        weights=model_mlp.get_weights())))
+    #
+    #     # model.save_weights('{0}_model_weights.h5'.format(subject_name), overwrite=True)
+    #
+    # pickle.dump( all_history, open( "save_25_april_predict_color_all_subjects.p", "wb" ) )

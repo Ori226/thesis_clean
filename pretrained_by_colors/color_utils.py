@@ -5,7 +5,6 @@ ABC_list = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n'
 def create_color_dictionary():
     color_dictionary_ = dict()
     for letter_i, letter in enumerate(ABC_list):
-        print letter_i
         #     red (fRyGk<)
         if letter in list('fRyGk<'.lower()):
             color_dictionary_[letter_i + 1] = 0

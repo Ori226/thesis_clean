@@ -156,7 +156,7 @@ if __name__ == "__main__":
         shuffeled_samples, suffule_tags = shuffle(train_data, train_tags, random_state=0)
         test_data, test_tags = create_letter_test_data_color(gcd_res, down_samples_param=down_sample_param)
 
-        train_history_mlp = model_mlp.fit(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
+        train_history_mlp = model_mlp.evaluate(stats.zscore(shuffeled_samples, axis=1), suffule_tags,
                                           nb_epoch=35, show_accuracy=True, verbose=1,
                                           validation_data=(stats.zscore(test_data, axis=1), test_tags),
                                           callbacks=[history_mlp])
@@ -188,4 +188,4 @@ if __name__ == "__main__":
 
         # model.save_weights('{0}_model_weights.h5'.format(subject_name), overwrite=True)
 
-    pickle.dump( all_history, open( "save_25_april_predict_color_take_3.p", "wb" ) )
+    # pickle.dump( all_history, open( "save_25_april_predict_color_take_3.p", "wb" ) )
