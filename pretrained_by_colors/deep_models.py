@@ -119,3 +119,21 @@ def create_small_compile_dense_model_color():
     model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     return model_lstm
+
+
+def create_small_compile_dense_model_color_less_params():
+    """
+    define the neural network model:
+    """
+    model_lstm = Sequential()
+    model_lstm.add(keras.layers.core.Flatten(input_shape=(55, 25)))
+    model_lstm.add(Dense(input_dim=55 * 25, output_dim=5))
+    model_lstm.add(Dropout(0.3))
+    model_lstm.add(Activation('tanh'))
+    model_lstm.add(Dense(output_dim=5, W_regularizer=l2(0.06)))
+    model_lstm.add(Activation('tanh'))
+    model_lstm.add(Dense(5))
+    model_lstm.add(Activation('softmax'))
+    model_lstm.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+
+    return model_lstm
