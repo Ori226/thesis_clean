@@ -67,7 +67,7 @@ def downsample_data(data, number_of_original_samples, down_samples_param):
 
 def create_training_and_testing(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
                                 take_same_number_positive_and_negative=False):
-    train_data, train_tags = create_train_data(gcd_res, fist_time_stamp, last_time_stamp, down_samples_param,
+    train_data, train_tags = create_train_data_split(gcd_res, fist_time_stamp, last_time_stamp, down_samples_param,
                                                take_same_number_positive_and_negative)
     test_data, test_tags = create_evaluation_data(gcd_res=gcd_res, fist_time_stamp=fist_time_stamp,
                                                   last_time_stamp=last_time_stamp,
@@ -116,6 +116,37 @@ def create_train_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samp
     
 
     return all_data, all_tags
+
+def create_train_data_split(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
+                      take_same_number_positive_and_negative=False):
+
+
+    all_positive_train = []
+    all_negative_train = []
+
+    data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
+                                    gcd_res['target'], fist_time_stamp, last_time_stamp)
+
+    temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
+
+    # extract the calibration_data
+    positive_train_data_gcd = temp_data_for_eval[
+        np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 1], axis=0)]
+    negative_train_data_gcd = temp_data_for_eval[
+        np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 0], axis=0)]
+
+    negative_splits = np.split(shuffle(negative_train_data_gcd), 29)
+    all_data_splits = []
+    all_tag_splits = []
+    for i in range(29):
+        suffuled_split_data, suffuled_split_tag = shuffle(np.vstack([positive_train_data_gcd, negative_splits[i]]),
+                                                          np.vstack([np.ones((positive_train_data_gcd.shape[0], 1)),
+                                                                     np.zeros((negative_splits[i].shape[0], 1))]).astype(
+                                                              np.int))
+        all_data_splits.append(suffuled_split_data)
+        all_tag_splits.append(suffuled_split_tag)
+
+    return all_data_splits, all_tag_splits
 
 
 def create_data_for_compare_by_repetition(file_name):
@@ -277,6 +308,91 @@ class LSTM_EEG(GeneralModel):
     def predict(self, _X):
         return self.model.predict(stats.zscore(_X, axis=1))
 
+
+class LSTM_CNN_EEGEnsamble(GeneralModel):
+    def get_params(self):
+        super(LSTM_CNN_EEGEnsamble, self).get_params()
+        return self.model.get_weights()
+
+    def get_name(self):
+        super(LSTM_CNN_EEGEnsamble, self).get_name()
+        return self.__class__.__name__ + "_" + str(self._num_of_hidden_units) + "_" + str(self.positive_weight)
+
+    def reset(self):
+        super(LSTM_CNN_EEGEnsamble, self).reset()
+        self.model.set_weights(self.original_weights)
+
+    def __init__(self, positive_weight, _num_of_hidden_units):
+        super(LSTM_CNN_EEGEnsamble, self).__init__()
+        self.positive_weight = positive_weight
+        self._num_of_hidden_units = _num_of_hidden_units
+        self.number_of_subset = 29
+        '''
+        define the neural network model:
+
+        '''
+
+
+        from keras.models import Sequential
+        from keras.layers.recurrent import SimpleRNN, LSTM, GRU
+        from keras.layers.convolutional import Convolution2D, Convolution1D
+        from keras.layers.core import Dense, Activation, TimeDistributedDense, Dropout, Reshape, Flatten
+        from keras.layers.convolutional import MaxPooling1D, MaxPooling2D
+        from keras.layers.core import Permute
+
+        maxToAdd = 200
+        model = Sequential()
+
+        model.add(TimeDistributedDense(10, input_shape=(maxToAdd, 55)))
+        model.add(Activation('tanh'))
+        model.add(
+            Reshape((1, maxToAdd, 10)))  # this line updated to work with keras 1.0.2
+        model.add(Convolution2D(3, 20, 1, border_mode='valid')) # org
+        model.add(Activation('tanh'))
+        model.add(Convolution2D(1, 1, 1, border_mode='same'))  # org
+        model.add(Activation('tanh'))
+        model.add(MaxPooling2D(pool_size=(20, 1), border_mode='valid'))
+        model.add(Permute((2, 1, 3)))
+        model.add(Reshape((9, 10)))  # this line updated to work with keras 1.0.2
+        model.add(LSTM(output_dim=50, return_sequences=False))
+        #
+        model.add(Dense(2, activation='softmax'))
+
+
+        model.compile(optimizer='rmsprop',
+                      loss='categorical_crossentropy')
+        self.model = model
+
+        # model.predict(np.random.rand(28, 200, 55).astype(np.float32)).shape
+
+        print model.layers[-1].output_shape
+        # print "2 {} {}".format(model.layers[1].output_shape[-3:], (1, maxToAdd, np.prod(model.layers[1].output_shape[-3:])))
+        self.original_weights = self.model.get_weights()
+        """ :type Sequential"""
+        self.all_weight = dict([(i, self.model.get_weights())for i in range(self.number_of_subset)])
+
+    def fit(self, _X, y):
+        counter = 0
+        for X_sub_db, y_sub_db in zip(_X,y):
+            print "start fitting {}".format(counter)
+            _y = to_categorical(y_sub_db)
+            self.model.set_weights(self.all_weight[counter])
+            self.model.fit(stats.zscore(X_sub_db, axis=1), _y,
+                           nb_epoch=100, batch_size=128, show_accuracy=True, verbose=1)
+            self.all_weight[counter] = self.model.get_weights()
+            counter += 1
+
+    def predict(self, _X):
+
+        all_prediction_results = np.zeros((self.number_of_subset, _X.shape[0],2))
+        for counter in range(self.number_of_subset):
+            self.model.set_weights(self.all_weight[counter])
+            all_prediction_results[counter,:,:] = self.model.predict(stats.zscore(_X, axis=1))
+
+        return np.mean(all_prediction_results, axis=0)
+
+
+
 class LSTM_CNN_EEG(GeneralModel):
     def get_params(self):
         super(LSTM_CNN_EEG, self).get_params()
@@ -408,7 +524,7 @@ if __name__ == "__main__":
     data_base_dir = r'C:\Users\ORI\Documents\Thesis\dataset_all'
     # model = LDA()
 
-    all_models = [LSTM_CNN_EEG(30,20)]
+    all_models = [LSTM_CNN_EEGEnsamble(30,20)]
     for model_type in all_models:
 
         all_model_results = []
@@ -441,6 +557,8 @@ if __name__ == "__main__":
                 model.reset()
                 print "end {}:{}:{}".format(subject, model.get_name()[-7:-4],
                                                  ",".join([str(x) for x in func_args.values()]))
+
+            break
 
 
 

@@ -1,23 +1,21 @@
+from experiments.P300_RSVP.common import GeneralModel, LSTM_CNN_EEG
+
 __author__ = 'ORI'
 
-from matplotlib.collections import LineCollection
-from abc import ABCMeta, abstractmethod
 import numpy as np
-import scipy.io
-import sys, os
+import os
 import cPickle as pickle
-import matplotlib.pyplot as plt
 # I should learn how to load libraries in a more elegant way
 
 
 
-
-import OriKerasExtension
+from scipy import stats
+from sklearn.cross_validation import StratifiedShuffleSplit
 # from OriKerasExtension import ThesisHelper
 
 # reload(OriKerasExtension)
 # reload(OriKerasExtension.ThesisHelper)
-from   OriKerasExtension.ThesisHelper import LoadSingleSubjectPython, readCompleteMatFile, ExtractDataVer4
+from   OriKerasExtension.ThesisHelper import readCompleteMatFile, ExtractDataVer4
 import OriKerasExtension.P300Prediction
 
 reload(OriKerasExtension.P300Prediction)
@@ -29,14 +27,9 @@ from OriKerasExtension.P300Prediction import accuracy_by_repetition, create_targ
 # from keras.layers.recurrent import LSTM
 # from keras.callbacks import ModelCheckpoint
 from keras.utils.np_utils import to_categorical
-from scipy import stats
-from sklearn.cross_validation import StratifiedShuffleSplit
 
 # reload(OriKerasExtension)
 
-
-from sklearn.utils import shuffle
-from sklearn.cross_validation import train_test_split
 
 rng = np.random.RandomState(42)
 
@@ -162,98 +155,21 @@ class EvaluateByRepetition(object):
         return all_accuracies
 
 
-class GeneralModel(object):
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def predict(self, _X):
-        pass
-
-    @abstractmethod
-    def fit(self, _X, _y):
-        pass
-
-    @abstractmethod
-    def reset(self):
-        pass
-
-    @abstractmethod
-    def get_name(self):
-        pass
-
-    @abstractmethod
+class LSTM_CNN_EEG_Comb(GeneralModel):
     def get_params(self):
-        pass
-
-class LSTM_EEG(GeneralModel):
-    def get_params(self):
-        super(LSTM_EEG, self).get_params()
+        super(LSTM_CNN_EEG_Comb, self).get_params()
         return self.model.get_weights()
 
     def get_name(self):
-        super(LSTM_EEG, self).get_name()
+        super(LSTM_CNN_EEG_Comb, self).get_name()
         return self.__class__.__name__ + "_" + str(self._num_of_hidden_units) + "_" + str(self.positive_weight)
 
     def reset(self):
-        super(LSTM_EEG, self).reset()
+        super(LSTM_CNN_EEG_Comb, self).reset()
         self.model.set_weights(self.original_weights)
 
     def __init__(self, positive_weight, _num_of_hidden_units):
-        super(LSTM_EEG, self).__init__()
-        self.positive_weight = positive_weight
-        self._num_of_hidden_units = _num_of_hidden_units
-
-        '''
-        define the neural network model:
-
-        '''
-        from keras.models import Sequential
-        from keras.layers.recurrent import LSTM
-        from keras.layers.core import Dense, Dropout, Activation
-        from keras.regularizers import l2
-
-        self.model = Sequential()
-        self.model.add(LSTM(input_dim=55, output_dim=_num_of_hidden_units, return_sequences=True))
-        self.model.add(Dropout(0.3))
-        self.model.add(LSTM(input_dim=_num_of_hidden_units, output_dim=_num_of_hidden_units, return_sequences=False))
-        self.model.add(Dense(2, W_regularizer=l2(0.06)))
-        self.model.add(Activation('softmax'))
-        self.model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-        self.original_weights = self.model.get_weights()
-        """ :type Sequential"""
-
-    def fit(self, _X, y):
-        from keras.callbacks import ModelCheckpoint
-
-        _y = to_categorical(y)
-
-        checkpointer = ModelCheckpoint(filepath=r"c:\temp\25_dec_lstm_with_ds_22.hdf5", verbose=1, save_best_only=True)
-        sss = list(StratifiedShuffleSplit(_y[:, 0], n_iter=1, test_size=0.1))
-        self.model.fit(stats.zscore(_X[sss[0][0]], axis=1), _y[sss[0][0]],
-                       nb_epoch=20, show_accuracy=True, verbose=1, validation_data=(
-                stats.zscore(_X[sss[0][1]], axis=1), _y[sss[0][1]]),
-                       class_weight={0: 1, 1: self.positive_weight},
-                       callbacks=[checkpointer])
-
-    def predict(self, _X):
-        return self.model.predict(stats.zscore(_X, axis=1))
-
-class LSTM_CNN_EEG(GeneralModel):
-    def get_params(self):
-        super(LSTM_CNN_EEG, self).get_params()
-        return self.model.get_weights()
-
-    def get_name(self):
-        super(LSTM_CNN_EEG, self).get_name()
-        return self.__class__.__name__ + "_" + str(self._num_of_hidden_units) + "_" + str(self.positive_weight)
-
-    def reset(self):
-        super(LSTM_CNN_EEG, self).reset()
-        self.model.set_weights(self.original_weights)
-
-    def __init__(self, positive_weight, _num_of_hidden_units):
-        super(LSTM_CNN_EEG, self).__init__()
+        super(LSTM_CNN_EEG_Comb, self).__init__()
         self.positive_weight = positive_weight
         self._num_of_hidden_units = _num_of_hidden_units
 
@@ -262,44 +178,32 @@ class LSTM_CNN_EEG(GeneralModel):
 
         '''
         # from keras.layers.extra import *
-        import numpy as  np
-        from keras.models import Sequential
-        from keras.layers.recurrent import LSTM
-        from keras.layers.core import Dense, Dropout, Activation
-        from keras.regularizers import l2
 
-        from keras.datasets import mnist
         from keras.models import Sequential
         # from keras.initializations import norRemal, identity
-        from keras.layers.recurrent import SimpleRNN, LSTM, GRU
-        from keras.optimizers import RMSprop, Adadelta
-        from keras.layers.convolutional import Convolution2D, Convolution1D
-        from keras.layers.core import Dense, Activation, TimeDistributedDense, Dropout, Reshape, Flatten
+        from keras.layers.recurrent import GRU, LSTM
+        from keras.layers.convolutional import Convolution2D
+        from keras.layers.core import Dense, Activation, TimeDistributedDense, Reshape
         # from keras.layers.wrappers import TimeDistributed
-        from keras.models import model_from_json
-        from keras.layers.convolutional import MaxPooling1D, MaxPooling2D
+        from keras.layers.convolutional import MaxPooling2D
         from keras.layers.core import Permute
 
-
+        from keras.regularizers import l2, activity_l2
 
 
         maxToAdd = 200
         # define our time-distributed setup
         model = Sequential()
 
-        model.add(TimeDistributedDense(10, input_shape=(maxToAdd, 55)))
-        # model.add(Convolution2D(1, 1, 10, border_mode='valid', input_shape=(1,maxToAdd, 55)))
+        model.add(Reshape((1, maxToAdd, 55), input_shape=(maxToAdd, 55)))  # this line updated to work with keras 1.0.2
+        # model.add(TimeDistributedDense(10, input_shape=(maxToAdd, 55)))
+        model.add(Convolution2D(3, 12, 55, border_mode='valid', W_regularizer=l2(0.1)))  # org
         model.add(Activation('tanh'))
-        model.add(
-            Reshape((1, maxToAdd, 10)))  # this line updated to work with keras 1.0.2
-        model.add(Convolution2D(3, 20, 1, border_mode='valid')) # org
-        model.add(Activation('tanh'))
-        model.add(Convolution2D(1, 1, 1, border_mode='same'))  # org
-        model.add(Activation('tanh'))
-        model.add(MaxPooling2D(pool_size=(20, 1), border_mode='valid'))
+        model.add(MaxPooling2D(pool_size=(12, 1), border_mode='valid'))
         model.add(Permute((2, 1, 3)))
-        model.add(Reshape((9, 10)))  # this line updated to work with keras 1.0.2
-        model.add(GRU(output_dim=20, return_sequences=False))
+        model.add(Reshape((model.layers[-1].output_shape[1],
+                           model.layers[-1].output_shape[2])))  # this line updated to work with keras 1.0.2
+        model.add(LSTM(output_dim=10, return_sequences=False))
         #
         model.add(Dense(2, activation='softmax'))
 
@@ -326,28 +230,13 @@ class LSTM_CNN_EEG(GeneralModel):
 
         checkpointer = ModelCheckpoint(filepath=r"c:\temp\25_dec_lstm_with_ds_22.hdf5", verbose=1, save_best_only=True)
         sss = list(StratifiedShuffleSplit(_y[:, 0], n_iter=1, test_size=0.1))
-        # self.model.fit(stats.zscore(_X[sss[0][0]], axis=1), _y[sss[0][0]],
-        #                nb_epoch=50, show_accuracy=True, verbose=1, validation_data=(
-        #         stats.zscore(_X[sss[0][1]], axis=1), _y[sss[0][1]]),
-        #                class_weight={0: 1, 1: self.positive_weight},
-        #                callbacks=[checkpointer])
 
         self.model.fit(stats.zscore(_X, axis=1), _y,
-                       nb_epoch=50, show_accuracy=True, verbose=1,
+                       nb_epoch=30, show_accuracy=True, verbose=1,
                        class_weight={0: 1, 1: self.positive_weight})
 
-        # self.model.fit(_X[sss[0][0]], _y[sss[0][0]],
-        #                nb_epoch=20)
-
-        # self.model.predict(_X[sss[0][0]], batch_size=2)
-
     def predict(self, _X):
-        # _X = np.expand_dims(np.expand_dims(_X, 3), 4).transpose([0, 1, 3, 2, 4])
-
         return self.model.predict(stats.zscore(_X, axis=1))
-
-
-
 
 if __name__ == "__main__":
     model_20 = None
@@ -370,7 +259,7 @@ if __name__ == "__main__":
     data_base_dir = r'C:\Users\ORI\Documents\Thesis\dataset_all'
     # model = LDA()
 
-    all_models = [LSTM_CNN_EEG(30,20)]
+    all_models = [LSTM_CNN_EEG_Comb(50, 20)]
     for model_type in all_models:
 
         all_model_results = []
