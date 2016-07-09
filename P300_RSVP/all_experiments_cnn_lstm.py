@@ -1,4 +1,5 @@
 __author__ = 'ORI'
+from experiments.P300_RSVP.common import *
 
 from matplotlib.collections import LineCollection
 from abc import ABCMeta, abstractmethod
@@ -137,49 +138,49 @@ def create_data_for_compare_by_repetition(file_name):
 
 from sklearn.lda import LDA
 
+#
+# class EvaluateByRepetition(object):
+#     def __init__(self, subject_file):
+#         super(EvaluateByRepetition, self).__init__()
+#         self.sub_gcd_res = create_data_for_compare_by_repetition(file_name)
+#
+#     def foo(self, actual, prediction):
+#         _, _, gt_data_for_sum = create_target_table(self.sub_gcd_res, actual)
+#         _, _, actual_data_for_sum = create_target_table(self.sub_gcd_res, prediction[:, 1])
+#
+#         all_accuracies = dict([
+#                                   [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
+#                                                                number_of_repetition=rep)]
+#                                   for rep in range(10)])
+#
+#         print ", ".join([
+#                             "acc {}:{}".format(k, v)
+#                             for k, v in all_accuracies.iteritems()])
+#         return all_accuracies
 
-class EvaluateByRepetition(object):
-    def __init__(self, subject_file):
-        super(EvaluateByRepetition, self).__init__()
-        self.sub_gcd_res = create_data_for_compare_by_repetition(file_name)
-
-    def foo(self, actual, prediction):
-        _, _, gt_data_for_sum = create_target_table(self.sub_gcd_res, actual)
-        _, _, actual_data_for_sum = create_target_table(self.sub_gcd_res, prediction[:, 1])
-
-        all_accuracies = dict([
-                                  [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
-                                                               number_of_repetition=rep)]
-                                  for rep in range(10)])
-
-        print ", ".join([
-                            "acc {}:{}".format(k, v)
-                            for k, v in all_accuracies.iteritems()])
-        return all_accuracies
-
-
-class GeneralModel(object):
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def predict(self, _X):
-        pass
-
-    @abstractmethod
-    def fit(self, _X, _y):
-        pass
-
-    @abstractmethod
-    def reset(self):
-        pass
-
-    @abstractmethod
-    def get_name(self):
-        pass
-
-    @abstractmethod
-    def get_params(self):
-        pass
+#
+# class GeneralModel(object):
+#     __metaclass__ = ABCMeta
+#
+#     @abstractmethod
+#     def predict(self, _X):
+#         pass
+#
+#     @abstractmethod
+#     def fit(self, _X, _y):
+#         pass
+#
+#     @abstractmethod
+#     def reset(self):
+#         pass
+#
+#     @abstractmethod
+#     def get_name(self):
+#         pass
+#
+#     @abstractmethod
+#     def get_params(self):
+#         pass
 
 
 class My_LDA(LDA, GeneralModel):

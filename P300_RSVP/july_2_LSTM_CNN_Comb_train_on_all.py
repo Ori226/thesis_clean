@@ -1,4 +1,5 @@
-from experiments.P300_RSVP.common import GeneralModel, LSTM_CNN_EEG
+from experiments.P300_RSVP.common import *
+
 
 __author__ = 'ORI'
 
@@ -83,30 +84,30 @@ def create_only_testing(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_sa
                      take_same_number_positive_and_negative=take_same_number_positive_and_negative)
     return None, None, test_data, test_tags, func_args
 
-
-def create_train_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
-                      take_same_number_positive_and_negative=False):
-    all_positive_train = []
-    all_negative_train = []
-
-    data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
-                                    gcd_res['target'], fist_time_stamp, last_time_stamp)
-
-    temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
-
-    all_tags = gcd_res['target'][gcd_res['train_mode'] == 1]
-
-
-
-
-    all_data = temp_data_for_eval[gcd_res['train_mode'] == 1]
-
-    categorical_tags = to_categorical(all_tags)
-
-    # shuffeled_samples, suffule_tags = shuffle(all_data, all_tags, random_state=0)
-
-
-    return all_data, all_tags
+#
+# def create_train_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
+#                       take_same_number_positive_and_negative=False):
+#     all_positive_train = []
+#     all_negative_train = []
+#
+#     data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
+#                                     gcd_res['target'], fist_time_stamp, last_time_stamp)
+#
+#     temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
+#
+#     all_tags = gcd_res['target'][gcd_res['train_mode'] == 1]
+#
+#
+#
+#
+#     all_data = temp_data_for_eval[gcd_res['train_mode'] == 1]
+#
+#     categorical_tags = to_categorical(all_tags)
+#
+#     # shuffeled_samples, suffule_tags = shuffle(all_data, all_tags, random_state=0)
+#
+#
+#     return all_data, all_tags
 
 def create_train_data_from_all(all_gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
                       take_same_number_positive_and_negative=False):
@@ -161,25 +162,25 @@ def create_data_for_compare_by_repetition(file_name):
 
 # from sklearn.lda import LDA
 
-
-class EvaluateByRepetition(object):
-    def __init__(self, subject_file):
-        super(EvaluateByRepetition, self).__init__()
-        self.sub_gcd_res = create_data_for_compare_by_repetition(file_name)
-
-    def foo(self, actual, prediction):
-        _, _, gt_data_for_sum = create_target_table(self.sub_gcd_res, actual)
-        _, _, actual_data_for_sum = create_target_table(self.sub_gcd_res, prediction[:, 1])
-
-        all_accuracies = dict([
-                                  [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
-                                                               number_of_repetition=rep)]
-                                  for rep in range(10)])
-
-        print ", ".join([
-                            "acc {}:{}".format(k, v)
-                            for k, v in all_accuracies.iteritems()])
-        return all_accuracies
+#
+# class EvaluateByRepetition(object):
+#     def __init__(self, subject_file):
+#         super(EvaluateByRepetition, self).__init__()
+#         self.sub_gcd_res = create_data_for_compare_by_repetition(file_name)
+#
+#     def foo(self, actual, prediction):
+#         _, _, gt_data_for_sum = create_target_table(self.sub_gcd_res, actual)
+#         _, _, actual_data_for_sum = create_target_table(self.sub_gcd_res, prediction[:, 1])
+#
+#         all_accuracies = dict([
+#                                   [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
+#                                                                number_of_repetition=rep)]
+#                                   for rep in range(10)])
+#
+#         print ", ".join([
+#                             "acc {}:{}".format(k, v)
+#                             for k, v in all_accuracies.iteritems()])
+#         return all_accuracies
 
 
 class LSTM_CNN_EEG_Comb(GeneralModel):

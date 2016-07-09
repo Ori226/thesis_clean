@@ -1,5 +1,5 @@
 __author__ = 'ORI'
-
+from experiments.P300_RSVP.common import *
 from matplotlib.collections import LineCollection
 from abc import ABCMeta, abstractmethod
 import numpy as np
@@ -40,90 +40,90 @@ from sklearn.cross_validation import train_test_split
 
 rng = np.random.RandomState(42)
 
-
-def create_evaluation_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1):
-    #     gcd_res = readCompleteMatFile(file_name)
-    data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'], gcd_res['target'],
-                                    fist_time_stamp, last_time_stamp)
-    # print  data_for_eval
-
-    temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
-
-    test_data_gcd, test_target_gcd = temp_data_for_eval[gcd_res['train_mode'] != 1], data_for_eval[1][
-        gcd_res['train_mode'] != 1]
-    return test_data_gcd, test_target_gcd
-
-
-def downsample_data(data, number_of_original_samples, down_samples_param):
-    new_number_of_time_stamps = number_of_original_samples / down_samples_param
-
-    # print  data_for_eval
-    temp_data_for_eval = np.zeros((data.shape[0], new_number_of_time_stamps, data.shape[2]))
-
-    for new_i, i in enumerate(range(0, number_of_original_samples, down_samples_param)):
-        temp_data_for_eval[:, new_i, :] = np.mean(data[:, range(i, (i + down_samples_param)), :], axis=1)
-    return temp_data_for_eval
-
-
-def create_training_and_testing(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
-                                take_same_number_positive_and_negative=False):
-    train_data, train_tags = create_train_data(gcd_res, fist_time_stamp, last_time_stamp, down_samples_param,
-                                               take_same_number_positive_and_negative)
-    test_data, test_tags = create_evaluation_data(gcd_res=gcd_res, fist_time_stamp=fist_time_stamp,
-                                                  last_time_stamp=last_time_stamp,
-                                                  down_samples_param=down_samples_param)
-    func_args = dict(fist_time_stamp=fist_time_stamp, last_time_stamp=last_time_stamp,
-                     down_samples_param=down_samples_param,
-                     take_same_number_positive_and_negative=take_same_number_positive_and_negative)
-    return train_data, train_tags, test_data, test_tags, func_args
-
-
-def create_train_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
-                      take_same_number_positive_and_negative=False):
-    all_positive_train = []
-    all_negative_train = []
-
-    data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
-                                    gcd_res['target'], fist_time_stamp, last_time_stamp)
-
-    temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
-
-    # # extract the calibration_data
-    # positive_train_data_gcd = temp_data_for_eval[
-    #     np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 1], axis=0)]
-    # negative_train_data_gcd = temp_data_for_eval[
-    #     np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 0], axis=0)]
-
-    all_tags = gcd_res['target'][gcd_res['train_mode'] == 1]
-
-
-    # all_positive_train.append(positive_train_data_gcd)
-    # all_negative_train.append(negative_train_data_gcd)
-
-    all_data = temp_data_for_eval[gcd_res['train_mode'] == 1]
-    # if take_same_number_positive_and_negative:
-    #     negative_train_data_gcd = rng.permutation(np.vstack(all_negative_train))[0:positive_train_data_gcd.shape[0]]
-    # else:
-    #     negative_train_data_gcd = np.vstack(all_negative_train)
-    #
-    # all_data = np.vstack([positive_train_data_gcd, negative_train_data_gcd])
-
-    # all_tags = np.vstack(
-    #     [np.ones((positive_train_data_gcd.shape[0], 1)), np.zeros((negative_train_data_gcd.shape[0], 1))]).astype(np.int)
-    categorical_tags = to_categorical(all_tags)
-
-    # shuffeled_samples, suffule_tags = shuffle(all_data, all_tags, random_state=0)
-    
-
-    return all_data, all_tags
-
-
-def create_data_for_compare_by_repetition(file_name):
-    gcd_res = readCompleteMatFile(file_name)
-    sub_gcd_res = dict(train_trial=gcd_res['train_trial'][gcd_res['train_mode'] != 1],
-                       train_block=gcd_res['train_block'][gcd_res['train_mode'] != 1],
-                       stimulus=gcd_res['stimulus'][gcd_res['train_mode'] != 1])
-    return sub_gcd_res
+#
+# def create_evaluation_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1):
+#     #     gcd_res = readCompleteMatFile(file_name)
+#     data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'], gcd_res['target'],
+#                                     fist_time_stamp, last_time_stamp)
+#     # print  data_for_eval
+#
+#     temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
+#
+#     test_data_gcd, test_target_gcd = temp_data_for_eval[gcd_res['train_mode'] != 1], data_for_eval[1][
+#         gcd_res['train_mode'] != 1]
+#     return test_data_gcd, test_target_gcd
+#
+#
+# def downsample_data(data, number_of_original_samples, down_samples_param):
+#     new_number_of_time_stamps = number_of_original_samples / down_samples_param
+#
+#     # print  data_for_eval
+#     temp_data_for_eval = np.zeros((data.shape[0], new_number_of_time_stamps, data.shape[2]))
+#
+#     for new_i, i in enumerate(range(0, number_of_original_samples, down_samples_param)):
+#         temp_data_for_eval[:, new_i, :] = np.mean(data[:, range(i, (i + down_samples_param)), :], axis=1)
+#     return temp_data_for_eval
+#
+#
+# def create_training_and_testing(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
+#                                 take_same_number_positive_and_negative=False):
+#     train_data, train_tags = create_train_data(gcd_res, fist_time_stamp, last_time_stamp, down_samples_param,
+#                                                take_same_number_positive_and_negative)
+#     test_data, test_tags = create_evaluation_data(gcd_res=gcd_res, fist_time_stamp=fist_time_stamp,
+#                                                   last_time_stamp=last_time_stamp,
+#                                                   down_samples_param=down_samples_param)
+#     func_args = dict(fist_time_stamp=fist_time_stamp, last_time_stamp=last_time_stamp,
+#                      down_samples_param=down_samples_param,
+#                      take_same_number_positive_and_negative=take_same_number_positive_and_negative)
+#     return train_data, train_tags, test_data, test_tags, func_args
+#
+#
+# def create_train_data(gcd_res, fist_time_stamp=0, last_time_stamp=400, down_samples_param=1,
+#                       take_same_number_positive_and_negative=False):
+#     all_positive_train = []
+#     all_negative_train = []
+#
+#     data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
+#                                     gcd_res['target'], fist_time_stamp, last_time_stamp)
+#
+#     temp_data_for_eval = downsample_data(data_for_eval[0], data_for_eval[0].shape[1], down_samples_param)
+#
+#     # # extract the calibration_data
+#     # positive_train_data_gcd = temp_data_for_eval[
+#     #     np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 1], axis=0)]
+#     # negative_train_data_gcd = temp_data_for_eval[
+#     #     np.all([gcd_res['train_mode'] == 1, gcd_res['target'] == 0], axis=0)]
+#
+#     all_tags = gcd_res['target'][gcd_res['train_mode'] == 1]
+#
+#
+#     # all_positive_train.append(positive_train_data_gcd)
+#     # all_negative_train.append(negative_train_data_gcd)
+#
+#     all_data = temp_data_for_eval[gcd_res['train_mode'] == 1]
+#     # if take_same_number_positive_and_negative:
+#     #     negative_train_data_gcd = rng.permutation(np.vstack(all_negative_train))[0:positive_train_data_gcd.shape[0]]
+#     # else:
+#     #     negative_train_data_gcd = np.vstack(all_negative_train)
+#     #
+#     # all_data = np.vstack([positive_train_data_gcd, negative_train_data_gcd])
+#
+#     # all_tags = np.vstack(
+#     #     [np.ones((positive_train_data_gcd.shape[0], 1)), np.zeros((negative_train_data_gcd.shape[0], 1))]).astype(np.int)
+#     categorical_tags = to_categorical(all_tags)
+#
+#     # shuffeled_samples, suffule_tags = shuffle(all_data, all_tags, random_state=0)
+#
+#
+#     return all_data, all_tags
+#
+#
+# def create_data_for_compare_by_repetition(file_name):
+#     gcd_res = readCompleteMatFile(file_name)
+#     sub_gcd_res = dict(train_trial=gcd_res['train_trial'][gcd_res['train_mode'] != 1],
+#                        train_block=gcd_res['train_block'][gcd_res['train_mode'] != 1],
+#                        stimulus=gcd_res['stimulus'][gcd_res['train_mode'] != 1])
+#     return sub_gcd_res
 
 
 # class run_experiments(object):
@@ -140,50 +140,50 @@ def create_data_for_compare_by_repetition(file_name):
 #         pass
 
 # from sklearn.lda import LDA
-
-
-class EvaluateByRepetition(object):
-    def __init__(self, subject_file):
-        super(EvaluateByRepetition, self).__init__()
-        self.sub_gcd_res = create_data_for_compare_by_repetition(file_name)
-
-    def foo(self, actual, prediction):
-        _, _, gt_data_for_sum = create_target_table(self.sub_gcd_res, actual)
-        _, _, actual_data_for_sum = create_target_table(self.sub_gcd_res, prediction[:, 1])
-
-        all_accuracies = dict([
-                                  [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
-                                                               number_of_repetition=rep)]
-                                  for rep in range(10)])
-
-        print ", ".join([
-                            "acc {}:{}".format(k, v)
-                            for k, v in all_accuracies.iteritems()])
-        return all_accuracies
-
-
-class GeneralModel(object):
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def predict(self, _X):
-        pass
-
-    @abstractmethod
-    def fit(self, _X, _y):
-        pass
-
-    @abstractmethod
-    def reset(self):
-        pass
-
-    @abstractmethod
-    def get_name(self):
-        pass
-
-    @abstractmethod
-    def get_params(self):
-        pass
+#
+#
+# class EvaluateByRepetition(object):
+#     def __init__(self, subject_file):
+#         super(EvaluateByRepetition, self).__init__()
+#         self.sub_gcd_res = create_data_for_compare_by_repetition(file_name)
+#
+#     def foo(self, actual, prediction):
+#         _, _, gt_data_for_sum = create_target_table(self.sub_gcd_res, actual)
+#         _, _, actual_data_for_sum = create_target_table(self.sub_gcd_res, prediction[:, 1])
+#
+#         all_accuracies = dict([
+#                                   [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
+#                                                                number_of_repetition=rep)]
+#                                   for rep in range(10)])
+#
+#         print ", ".join([
+#                             "acc {}:{}".format(k, v)
+#                             for k, v in all_accuracies.iteritems()])
+#         return all_accuracies
+#
+#
+# class GeneralModel(object):
+#     __metaclass__ = ABCMeta
+#
+#     @abstractmethod
+#     def predict(self, _X):
+#         pass
+#
+#     @abstractmethod
+#     def fit(self, _X, _y):
+#         pass
+#
+#     @abstractmethod
+#     def reset(self):
+#         pass
+#
+#     @abstractmethod
+#     def get_name(self):
+#         pass
+#
+#     @abstractmethod
+#     def get_params(self):
+#         pass
 
 class LSTM_EEG(GeneralModel):
     def get_params(self):

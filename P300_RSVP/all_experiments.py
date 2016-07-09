@@ -150,7 +150,7 @@ class EvaluateByRepetition(object):
         all_accuracies = dict([
                                   [rep, accuracy_by_repetition(actual_data_for_sum, gt_data_for_sum,
                                                                number_of_repetition=rep)]
-                                  for rep in range(10)])
+                                  for rep in range(1,11)])
 
         print ", ".join([
                             "acc {}:{}".format(k, v)
@@ -259,22 +259,26 @@ if __name__ == "__main__":
     model_20 = None
     model_100 = None
 
-    all_subjects = ["RSVP_Color116msVPicr.mat",
-                    "RSVP_Color116msVPpia.mat",
+    all_subjects = ["RSVP_Color116msVPpia.mat",
+                    "RSVP_Color116msVPgcd.mat",
+
+                    "RSVP_Color116msVPiay.mat",
+                    "RSVP_Color116msVPicr.mat",
                     "RSVP_Color116msVPfat.mat",
                     "RSVP_Color116msVPgcb.mat",
                     "RSVP_Color116msVPgcc.mat",
-                    "RSVP_Color116msVPgcd.mat",
+
                     "RSVP_Color116msVPgcf.mat",
                     "RSVP_Color116msVPgcg.mat",
                     "RSVP_Color116msVPgch.mat",
-                    "RSVP_Color116msVPiay.mat",
+
                     "RSVP_Color116msVPicn.mat"];
 
     data_base_dir = r'C:\Users\ORI\Documents\Thesis\dataset_all'
     # model = LDA()
 
-    all_models = [LSTM_EEG(1.0, 20), LSTM_EEG(50.0, 20), LSTM_EEG(50.0, 100), LSTM_EEG(1.0, 100), My_LDA()]
+    # all_models = [LSTM_EEG(1.0, 20), LSTM_EEG(50.0, 20), LSTM_EEG(50.0, 100), LSTM_EEG(1.0, 100), My_LDA()]
+    all_models = [LSTM_EEG(50.0, 20)]
     for model_type in all_models:
 
         all_model_results = []
@@ -284,15 +288,21 @@ if __name__ == "__main__":
             gcd_res = readCompleteMatFile(file_name)
             repetition_eval = EvaluateByRepetition(file_name)
 
-            for data_extraction_method in [create_training_and_testing(gcd_res, 0, 400, 1, True),
-                                           create_training_and_testing(gcd_res, 0, 400, 1, False),
-                                           create_training_and_testing(gcd_res, 0, 400, 8, True),
-                                           create_training_and_testing(gcd_res, 0, 400, 8, False),
-                                           create_training_and_testing(gcd_res, -200, 800, 1, True),
-                                           create_training_and_testing(gcd_res, -200, 800, 1, False),
-                                           create_training_and_testing(gcd_res, -200, 800, 8, True),
+            # for data_extraction_method in [create_training_and_testing(gcd_res, 0, 400, 1, True),
+            #                                create_training_and_testing(gcd_res, 0, 400, 1, False),
+            #                                create_training_and_testing(gcd_res, 0, 400, 8, True),
+            #                                create_training_and_testing(gcd_res, 0, 400, 8, False),
+            #                                create_training_and_testing(gcd_res, -200, 800, 1, True),
+            #                                create_training_and_testing(gcd_res, -200, 800, 1, False),
+            #                                create_training_and_testing(gcd_res, -200, 800, 8, True),
+            #                                create_training_and_testing(gcd_res, -200, 800, 8, False)
+            #                                ]:
+
+            for data_extraction_method in [
                                            create_training_and_testing(gcd_res, -200, 800, 8, False)
                                            ]:
+
+
 
                 # create_training_and_testing(gcd_res, 0, 400, 1, True)
                 training_data, train_tags, testing_data, test_tags, func_args = data_extraction_method
