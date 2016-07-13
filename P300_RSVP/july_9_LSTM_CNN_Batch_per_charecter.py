@@ -308,7 +308,7 @@ def per_char_loss(X):
 
 def identity_loss(y_true, y_pred):
 
-    return K.mean(y_pred - 0 * y_true)
+    return K.categorical_crossentropy(y_true, y_pred) #K.mean(y_pred - 0 * y_true)
 
 def get_graph(num_items, latent_dim):
 
@@ -366,11 +366,55 @@ def get_all_triplet_combinations(all_data_per_char, target_per_char, train_mode_
     from itertools import combinations
     block_length = 10
     all_training_set = []
-    for i in range(np.sum(train_mode_per_block == 1)):
-        indexes = block_length * i + np.array(list(combinations(range(block_length),2)))
-        all_training_set.append(all_data_per_char[indexes])
 
-    pass
+    number_in_batch = 80
+    all_data = np.zeros((60, number_in_batch, 200, 55), dtype=np.float32)
+    all_tags = np.zeros((number_in_batch,30),dtype=np.int8)
+    # data_in_dict = dict(
+    #     [["positive_item_input_{}".format(i), np.zeros((60, number_in_batch,200,55))] for i in
+    #      range(60)])
+
+    counter = 0
+    for block_of_repetition_index in np.random.permutation(np.where(train_mode_per_block == 1)[0].reshape(-1,10))[0:10]: #np.random.permutation(range(np.sum(train_mode_per_block == 1)/block_length))[0:10]:
+        indexes = list(combinations(block_of_repetition_index,2))
+        # now select 3 randomaly
+
+        for index_i in np.random.permutation(indexes)[0:8]:
+            all_data[:,counter,:,:] =  np.vstack([all_data_per_char[index_i[0]], all_data_per_char[index_i[1]]])
+            all_tags[counter] = np.mean(np.vstack([target_per_char [index_i[0]], target_per_char[index_i[1]]]),axis=0 )
+            counter += 1
+
+
+    return all_data, all_tags
+
+
+def get_all_triplet_combinations_testing(all_data_per_char, target_per_char, train_mode_per_block):
+
+    from itertools import combinations
+    block_length = 10
+    all_training_set = []
+    magic_number = 60
+    number_of_repetition = 2
+
+    number_in_batch = 40
+    all_data = np.zeros((magic_number, number_in_batch, 200, 55), dtype=np.float32)
+    all_tags = np.zeros((number_in_batch,30),dtype=np.int8)
+    # data_in_dict = dict(
+    #     [["positive_item_input_{}".format(i), np.zeros((60, number_in_batch,200,55))] for i in
+    #      range(60)])
+
+    counter = 0
+    for block_of_repetition_index in np.random.permutation(np.where(train_mode_per_block != 1)[0].reshape(-1,10))[0:10]: #np.random.permutation(range(np.sum(train_mode_per_block == 1)/block_length))[0:10]:
+        indexes = list(combinations(block_of_repetition_index,number_of_repetition))
+        # now select 3 randomaly
+
+        for index_i in np.random.permutation(indexes)[0:4]:
+            all_data[:,counter,:,:] =  np.vstack( [all_data_per_char[item] for item in index_i])
+            all_tags[counter] = np.mean(np.vstack([target_per_char [index_i[0]], target_per_char[index_i[1]]]),axis=0 )
+            counter += 1
+
+
+    return all_data, all_tags
 
 def create_data_rep_training(file_name,fist_time_stamp, last_time_stamp):
     gcd_res = readCompleteMatFile(file_name)
@@ -401,104 +445,136 @@ if __name__ == "__main__":
     all_data_per_char, target_per_char, train_mode_per_block, all_data_per_char_as_matrix, target_per_char_as_matrix = create_data_rep_training(file_name,-200,800)
     # all_data = create_data_for_compare_by_repetition(file_name)
 
-    temp = get_all_triplet_combinations(all_data_per_char_as_matrix, target_per_char_as_matrix, train_mode_per_block)
 
-    gcd_res = readCompleteMatFile(file_name)
-    repetition_eval = EvaluateByRepetition(file_name)
+    testing_data, testing_tags = get_all_triplet_combinations_testing(all_data_per_char_as_matrix, target_per_char_as_matrix, train_mode_per_block)
 
-    training_data, train_tags, testing_data, test_tags, func_args = create_training_and_testing(gcd_res, -200, 800, 1, False)
+    # gcd_res = readCompleteMatFile(file_name)
+    # repetition_eval = EvaluateByRepetition(file_name)
 
-    input_dict = dict(
-        [["positive_item_input_{}".format(i), stats.zscore(training_data[30 * (i ):30 * (i + 2):30], axis=1)] for i in
+    # training_data, train_tags, testing_data, test_tags, func_args = create_training_and_testing(gcd_res, -200, 800, 1, False)
+
+    # input_dict = dict(
+    #     [["positive_item_input_{}".format(i), stats.zscore(training_data[30 * (i ):30 * (i + 2):30], axis=1)] for i in
+    #      range(60)])
+
+
+
+    input_dict_testing = dict(
+        [["positive_item_input_{}".format(i), stats.zscore(testing_data[i], axis=1)] for i in
          range(60)])
 
+    input_dict_testing['triplet_loss'] = testing_tags
 
     model = get_graph(3, 10)
+
+    for epoch in range(4):
+        print "starting {0}".format(epoch)
+        training_data, train_tags = get_all_triplet_combinations(all_data_per_char_as_matrix, target_per_char_as_matrix,
+                                                                 train_mode_per_block)
+        input_dict = dict(
+            [["positive_item_input_{}".format(i), stats.zscore(training_data[i], axis=1)] for i in
+             range(60)])
+
+        input_dict['triplet_loss'] = train_tags
+        model.fit(input_dict,
+                  nb_epoch=20,
+                  verbose=2,
+                  shuffle=True, validation_data=input_dict_testing)
+
+
+
+
+
+
     # input_dict = dict([["positive_item_input_{}".format(i),np.random.rand(1,55,200).astype(np.float32)] for i in range(60)])
 
 
 
-    res  = model.predict(input_dict,
-        batch_size=2)
 
-    input_dict['triplet_loss'] = np.ones((2, 30))
+    # target_per_char_as_matrix[0:10,:]
 
 
 
 
-    model.fit(input_dict,
-        batch_size=1,
-        nb_epoch=1,
-        verbose=2,
-        shuffle=False)
-
-    # model.fit({
-    #            'positive_item_input': np.random.rand(3,55,200).astype(np.float32),
-    #     'negative_item_input': np.random.rand(3,55,200).astype(np.float32),
-    #             'triplet_loss': np.random.rand(3,2).astype(np.float32)},
-    #           batch_size=1,
-    #           nb_epoch=1,
-    #           verbose=2,
-    #           shuffle=True)
-
-    model_20 = None
-    model_100 = None
-
-    all_subjects = ["RSVP_Color116msVPpia.mat",
-        "RSVP_Color116msVPicr.mat",
-                    "RSVP_Color116msVPfat.mat",
-                    "RSVP_Color116msVPgcb.mat",
-                    "RSVP_Color116msVPgcc.mat",
-                    "RSVP_Color116msVPgcd.mat",
-                    "RSVP_Color116msVPgcf.mat",
-                    "RSVP_Color116msVPgcg.mat",
-                    "RSVP_Color116msVPgch.mat",
-                    "RSVP_Color116msVPiay.mat",
-                    "RSVP_Color116msVPicn.mat"];
-
-    # all_subjects = ["RSVP_Color116msVPicr.mat"]
 
 
-    # model = LDA()
-
-    all_models = [LSTM_CNN_EEG_Comb(50, 20)]
-    for model_type in all_models:
-
-        all_model_results = []
-
-        for subject in all_subjects:
-            file_name = os.path.join(data_base_dir, subject)
-            gcd_res = readCompleteMatFile(file_name)
-            repetition_eval = EvaluateByRepetition(file_name)
-
-            for data_extraction_method in [create_training_and_testing(gcd_res, -200, 800, 1, False)
-                                           ]:
-
-                # create_training_and_testing(gcd_res, 0, 400, 1, True)
-                training_data, train_tags, testing_data, test_tags, func_args = data_extraction_method
-                model = model_type  # type: GeneralModel
-                print "starting {}:{}:{}".format(subject, model.get_name()[-7:-4], ",".join([str(x) for x in func_args.values()]))
-
-                # training_data = create_train_data(gcd_res, 0, 400, 1, True)
-                # testing_data = create_evaluation_data(gcd_res, 0, 400, 1)
-
-                # training_data, train_tags, testing_data, test_tags = create_training_and_testing(gcd_res, 0, 400, 1, True)
-
-                # model = My_LDA()
-                model.fit(training_data, train_tags)
-                prediction_res = model.predict(testing_data)
-                all_accuracies = repetition_eval.foo(test_tags, prediction_res)
-                all_model_results.append(
-                    dict(all_accuracies=all_accuracies, subject_name=subject, model=model.get_name(),
-                         model_params=model.get_params(), func_args=func_args))
-                model.reset()
-                print "end {}:{}:{}".format(subject, model.get_name()[-7:-4],
-                                                 ",".join([str(x) for x in func_args.values()]))
-
-
-
-
-        pickle.dump(all_model_results, file=open(model_type.get_name() + "_b.p", "wb"))
-
-
-    pass
+    prediction_res = model.predict(input_dict_testing)
+    import matplotlib.pyplot as plt
+    plt.subplot(1, 2, 1)
+    plt.imshow(prediction_res['triplet_loss'], interpolation='none')
+    plt.subplot(1, 2, 2)
+    plt.imshow(testing_tags, interpolation='none')
+    plt.show()
+    # print "temp"
+    #
+    #
+    # # model.fit({
+    # #            'positive_item_input': np.random.rand(3,55,200).astype(np.float32),
+    # #     'negative_item_input': np.random.rand(3,55,200).astype(np.float32),
+    # #             'triplet_loss': np.random.rand(3,2).astype(np.float32)},
+    # #           batch_size=1,
+    # #           nb_epoch=1,
+    # #           verbose=2,
+    # #           shuffle=True)
+    #
+    # model_20 = None
+    # model_100 = None
+    #
+    # all_subjects = ["RSVP_Color116msVPpia.mat",
+    #     "RSVP_Color116msVPicr.mat",
+    #                 "RSVP_Color116msVPfat.mat",
+    #                 "RSVP_Color116msVPgcb.mat",
+    #                 "RSVP_Color116msVPgcc.mat",
+    #                 "RSVP_Color116msVPgcd.mat",
+    #                 "RSVP_Color116msVPgcf.mat",
+    #                 "RSVP_Color116msVPgcg.mat",
+    #                 "RSVP_Color116msVPgch.mat",
+    #                 "RSVP_Color116msVPiay.mat",
+    #                 "RSVP_Color116msVPicn.mat"];
+    #
+    # # all_subjects = ["RSVP_Color116msVPicr.mat"]
+    #
+    #
+    # # model = LDA()
+    #
+    # all_models = [LSTM_CNN_EEG_Comb(50, 20)]
+    # for model_type in all_models:
+    #
+    #     all_model_results = []
+    #
+    #     for subject in all_subjects:
+    #         file_name = os.path.join(data_base_dir, subject)
+    #         gcd_res = readCompleteMatFile(file_name)
+    #         repetition_eval = EvaluateByRepetition(file_name)
+    #
+    #         for data_extraction_method in [create_training_and_testing(gcd_res, -200, 800, 1, False)
+    #                                        ]:
+    #
+    #             # create_training_and_testing(gcd_res, 0, 400, 1, True)
+    #             training_data, train_tags, testing_data, test_tags, func_args = data_extraction_method
+    #             model = model_type  # type: GeneralModel
+    #             print "starting {}:{}:{}".format(subject, model.get_name()[-7:-4], ",".join([str(x) for x in func_args.values()]))
+    #
+    #             # training_data = create_train_data(gcd_res, 0, 400, 1, True)
+    #             # testing_data = create_evaluation_data(gcd_res, 0, 400, 1)
+    #
+    #             # training_data, train_tags, testing_data, test_tags = create_training_and_testing(gcd_res, 0, 400, 1, True)
+    #
+    #             # model = My_LDA()
+    #             model.fit(training_data, train_tags)
+    #             prediction_res = model.predict(testing_data)
+    #             all_accuracies = repetition_eval.foo(test_tags, prediction_res)
+    #             all_model_results.append(
+    #                 dict(all_accuracies=all_accuracies, subject_name=subject, model=model.get_name(),
+    #                      model_params=model.get_params(), func_args=func_args))
+    #             model.reset()
+    #             print "end {}:{}:{}".format(subject, model.get_name()[-7:-4],
+    #                                              ",".join([str(x) for x in func_args.values()]))
+    #
+    #
+    #
+    #
+    #     pickle.dump(all_model_results, file=open(model_type.get_name() + "_b.p", "wb"))
+    #
+    #
+    # pass
