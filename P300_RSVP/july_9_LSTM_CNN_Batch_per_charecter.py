@@ -362,28 +362,30 @@ def bpr_triplet_loss(X):
     return loss
 
 def get_all_triplet_combinations(all_data_per_char, target_per_char, train_mode_per_block):
-
     from itertools import combinations
     block_length = 10
     all_training_set = []
 
-    number_in_batch = 80
-    all_data = np.zeros((60, number_in_batch, 200, 55), dtype=np.float32)
-    all_tags = np.zeros((number_in_batch,30),dtype=np.int8)
+    number_of_repetition = 2
+    magic_number = number_of_repetition * 30
+
+    number_in_batch = 40
+    all_data = np.zeros((magic_number, number_in_batch, 200, 55), dtype=np.float32)
+    all_tags = np.zeros((number_in_batch, 30), dtype=np.int8)
     # data_in_dict = dict(
     #     [["positive_item_input_{}".format(i), np.zeros((60, number_in_batch,200,55))] for i in
     #      range(60)])
 
     counter = 0
-    for block_of_repetition_index in np.random.permutation(np.where(train_mode_per_block == 1)[0].reshape(-1,10))[0:10]: #np.random.permutation(range(np.sum(train_mode_per_block == 1)/block_length))[0:10]:
-        indexes = list(combinations(block_of_repetition_index,2))
+    for block_of_repetition_index in np.random.permutation(np.where(train_mode_per_block == 1)[0].reshape(-1, 10))[
+                                     0:10]:  # np.random.permutation(range(np.sum(train_mode_per_block == 1)/block_length))[0:10]:
+        indexes = list(combinations(block_of_repetition_index, number_of_repetition))
         # now select 3 randomaly
 
-        for index_i in np.random.permutation(indexes)[0:8]:
+        for index_i in np.random.permutation(indexes)[0:4]:
             all_data[:,counter,:,:] =  np.vstack([all_data_per_char[index_i[0]], all_data_per_char[index_i[1]]])
             all_tags[counter] = np.mean(np.vstack([target_per_char [index_i[0]], target_per_char[index_i[1]]]),axis=0 )
             counter += 1
-
 
     return all_data, all_tags
 
@@ -393,8 +395,9 @@ def get_all_triplet_combinations_testing(all_data_per_char, target_per_char, tra
     from itertools import combinations
     block_length = 10
     all_training_set = []
-    magic_number = 60
+
     number_of_repetition = 2
+    magic_number = number_of_repetition*30
 
     number_in_batch = 40
     all_data = np.zeros((magic_number, number_in_batch, 200, 55), dtype=np.float32)
@@ -420,6 +423,8 @@ def create_data_rep_training(file_name,fist_time_stamp, last_time_stamp):
     gcd_res = readCompleteMatFile(file_name)
     data_for_eval = ExtractDataVer4(gcd_res['all_relevant_channels'], gcd_res['marker_positions'],
                                     gcd_res['target'], fist_time_stamp, last_time_stamp)
+
+    data_for_eval = (downsample_data(data_for_eval[0], data_for_eval[0].shape[1], 1), data_for_eval[1])
 
     train_mode_per_block = gcd_res['train_mode'].reshape(-1,30)[:,0]
     all_data_per_char_as_matrix = np.zeros((train_mode_per_block.shape[0], 30, data_for_eval[0].shape[1], data_for_eval[0].shape[2]))
