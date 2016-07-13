@@ -301,7 +301,7 @@ def per_char_loss(X):
     # loss = K.max(K.concatenate([pos_lat, neg_lat]))
     concatenated = K.concatenate(alls)
     # reshaped = K.argmax(K.sum(K.reshape(concatenated, (K.shape(concatenated)[0],2, 30)),axis=1),axis=1)
-    reshaped = K.mean(K.reshape(concatenated, (K.shape(concatenated)[0], 2, 30)), axis=1)
+    reshaped = K.mean(K.reshape(concatenated, (K.shape(concatenated)[0], 3, 30)), axis=1)
 
     return K.softmax(K.reshape(reshaped,(reshaped.shape[0],-1)))
 
@@ -314,7 +314,7 @@ def get_graph(num_items, latent_dim):
 
     batch_input_shape = (1,200,55)
     # batch_input_shape = None
-    magic_num = 60
+    magic_num = 90
     model = Graph()
 
     # Add inputs
@@ -366,7 +366,7 @@ def get_all_triplet_combinations(all_data_per_char, target_per_char, train_mode_
     block_length = 10
     all_training_set = []
 
-    number_of_repetition = 2
+    number_of_repetition = 3
     magic_number = number_of_repetition * 30
 
     number_in_batch = 40
@@ -383,7 +383,7 @@ def get_all_triplet_combinations(all_data_per_char, target_per_char, train_mode_
         # now select 3 randomaly
 
         for index_i in np.random.permutation(indexes)[0:4]:
-            all_data[:,counter,:,:] =  np.vstack([all_data_per_char[index_i[0]], all_data_per_char[index_i[1]]])
+            all_data[:,counter,:,:] =  np.vstack( [all_data_per_char[item] for item in index_i])
             all_tags[counter] = np.mean(np.vstack([target_per_char [index_i[0]], target_per_char[index_i[1]]]),axis=0 )
             counter += 1
 
@@ -396,7 +396,7 @@ def get_all_triplet_combinations_testing(all_data_per_char, target_per_char, tra
     block_length = 10
     all_training_set = []
 
-    number_of_repetition = 2
+    number_of_repetition = 3
     magic_number = number_of_repetition*30
 
     number_in_batch = 40
@@ -466,7 +466,7 @@ if __name__ == "__main__":
 
     input_dict_testing = dict(
         [["positive_item_input_{}".format(i), stats.zscore(testing_data[i], axis=1)] for i in
-         range(60)])
+         range(90)])
 
     input_dict_testing['triplet_loss'] = testing_tags
 
@@ -478,7 +478,7 @@ if __name__ == "__main__":
                                                                  train_mode_per_block)
         input_dict = dict(
             [["positive_item_input_{}".format(i), stats.zscore(training_data[i], axis=1)] for i in
-             range(60)])
+             range(90)])
 
         input_dict['triplet_loss'] = train_tags
         model.fit(input_dict,
