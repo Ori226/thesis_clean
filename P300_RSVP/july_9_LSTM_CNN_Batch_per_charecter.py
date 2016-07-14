@@ -245,8 +245,9 @@ def get_item_subgraph(input_shape, latent_dim):
 
     from keras.models import Sequential
     from keras.layers.convolutional import Convolution2D
-    from keras.layers.core import Dense, Activation, Flatten, Reshape
+    from keras.layers.core import Dense, Activation, Flatten, Reshape, Dropout
     from keras.layers.convolutional import MaxPooling2D
+
     from keras.regularizers import l2
     number_of_time_stamps = 200
     number_of_in_channels = 55
@@ -255,8 +256,10 @@ def get_item_subgraph(input_shape, latent_dim):
 
     model.add(Flatten(input_shape=(number_of_time_stamps, number_of_in_channels)))
     model.add(Dense(40))  # , input_shape=(number_of_time_stamps, number_of_in_channels)))
+    model.add(Dropout(0.1))  # , input_shape=(number_of_time_stamps, number_of_in_channels)))
     model.add(Activation('tanh'))
     model.add(Dense(40))
+    model.add(Dropout(0.1))  # , input_shape=(number_of_time_stamps, number_of_in_channels)))
     model.add(Activation('tanh'))
     model.add(Dense(1))
 
@@ -369,7 +372,7 @@ def get_all_triplet_combinations(all_data_per_char, target_per_char, train_mode_
     number_of_repetition = 3
     magic_number = number_of_repetition * 30
 
-    number_in_batch = 40
+    number_in_batch = 90
     all_data = np.zeros((magic_number, number_in_batch, 200, 55), dtype=np.float32)
     all_tags = np.zeros((number_in_batch, 30), dtype=np.int8)
     # data_in_dict = dict(
@@ -382,9 +385,9 @@ def get_all_triplet_combinations(all_data_per_char, target_per_char, train_mode_
         indexes = list(combinations(block_of_repetition_index, number_of_repetition))
         # now select 3 randomaly
 
-        for index_i in np.random.permutation(indexes)[0:4]:
+        for index_i in np.random.permutation(indexes)[0:9]:
             all_data[:,counter,:,:] =  np.vstack( [all_data_per_char[item] for item in index_i])
-            all_tags[counter] = np.mean(np.vstack([target_per_char [index_i[0]], target_per_char[index_i[1]]]),axis=0 )
+            all_tags[counter] = np.mean(np.vstack([target_per_char[item] for item in index_i]),axis=0 )
             counter += 1
 
     return all_data, all_tags
@@ -413,7 +416,7 @@ def get_all_triplet_combinations_testing(all_data_per_char, target_per_char, tra
 
         for index_i in np.random.permutation(indexes)[0:4]:
             all_data[:,counter,:,:] =  np.vstack( [all_data_per_char[item] for item in index_i])
-            all_tags[counter] = np.mean(np.vstack([target_per_char [index_i[0]], target_per_char[index_i[1]]]),axis=0 )
+            all_tags[counter] = np.mean(np.vstack([target_per_char[item] for item in index_i]),axis=0 )
             counter += 1
 
 

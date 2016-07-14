@@ -268,7 +268,99 @@ class LSTM_CNN_EEG_Comb(GeneralModel):
         print model.layers[-1].output_shape
         # print "2 {} {}".format(model.layers[1].output_shape[-3:], (1, maxToAdd, np.prod(model.layers[1].output_shape[-3:])))
         self.original_weights = self.model.get_weights()
+
         """ :type Sequential"""
+
+    def fit(self, _X, y):
+        from keras.callbacks import ModelCheckpoint
+
+        _y = to_categorical(y)
+        # _X = np.expand_dims(np.expand_dims(_X,3),4).transpose([0,1,3,2,4])
+
+
+        # (batch, times, color_channel, x, y)
+
+
+        checkpointer = ModelCheckpoint(filepath=r"c:\temp\25_dec_lstm_with_ds_22.hdf5", verbose=1, save_best_only=True)
+        sss = list(StratifiedShuffleSplit(_y[:, 0], n_iter=1, test_size=0.1))
+        self.model.fit(stats.zscore(_X[sss[0][0]], axis=1), _y[sss[0][0]],
+                       nb_epoch=20, show_accuracy=True, verbose=1, validation_data=(
+                stats.zscore(_X[sss[0][1]], axis=1), _y[sss[0][1]]),
+                       class_weight={0: 1, 1: self.positive_weight},
+                       callbacks=[checkpointer])
+
+    def predict(self, _X):
+        return self.model.predict(stats.zscore(_X, axis=1))
+
+
+
+
+
+class LSTM_CNN_EEG_Comb_new_loss(GeneralModel):
+    def get_params(self):
+        super(LSTM_CNN_EEG_Comb_new_loss, self).get_params()
+        return self.model.get_weights()
+
+    def get_name(self):
+        super(LSTM_CNN_EEG_Comb_new_loss, self).get_name()
+        return self.__class__.__name__ + "_" + str(self._num_of_hidden_units) + "_" + str(self.positive_weight)
+
+    def reset(self):
+        super(LSTM_CNN_EEG_Comb_new_loss, self).reset()
+        self.model.set_weights(self.original_weights)
+
+    def __init__(self, positive_weight, _num_of_hidden_units):
+        super(LSTM_CNN_EEG_Comb_new_loss, self).__init__()
+        self.positive_weight = positive_weight
+        self._num_of_hidden_units = _num_of_hidden_units
+
+        '''
+        define the neural network model:
+
+        '''
+        # from keras.layers.extra import *
+
+        from keras.models import Sequential
+        # from keras.initializations import norRemal, identity
+        from keras.layers.recurrent import GRU, LSTM
+        from keras.layers.convolutional import Convolution2D
+        from keras.layers.core import Dense, Activation, TimeDistributedDense, Reshape
+        # from keras.layers.wrappers import TimeDistributed
+        from keras.layers.convolutional import MaxPooling2D
+        from keras.layers.core import Permute
+
+        from keras.regularizers import l2, activity_l2
+
+        maxToAdd = 200
+        # define our time-distributed setup
+        model = Sequential()
+
+        model.add(Reshape((1, maxToAdd, 55), input_shape=(maxToAdd, 55)))  # this line updated to work with keras 1.0.2
+        # model.add(TimeDistributedDense(10, input_shape=(maxToAdd, 55)))
+        model.add(Convolution2D(3, 12, 55, border_mode='valid', W_regularizer=l2(0.1)))  # org
+        model.add(Activation('tanh'))
+        model.add(MaxPooling2D(pool_size=(12, 1), border_mode='valid'))
+        model.add(Permute((2, 1, 3)))
+        model.add(Reshape((model.layers[-1].output_shape[1],
+                           model.layers[-1].output_shape[2])))  # this line updated to work with keras 1.0.2
+        model.add(LSTM(output_dim=10, return_sequences=False))
+        #
+        model.add(Dense(2, activation='softmax'))
+
+        model.compile(optimizer='rmsprop',
+                      loss='categorical_crossentropy')
+        self.model = model
+
+        # model.predict(np.random.rand(28, 200, 55).astype(np.float32)).shape
+
+        print model.layers[-1].output_shape
+        # print "2 {} {}".format(model.layers[1].output_shape[-3:], (1, maxToAdd, np.prod(model.layers[1].output_shape[-3:])))
+        self.original_weights = self.model.get_weights()
+
+        """ :type Sequential"""
+
+
+
 
     def fit(self, _X, y):
         from keras.callbacks import ModelCheckpoint
@@ -356,6 +448,11 @@ class CNN_2011_EEG(GeneralModel):
         self.model.set_weights(self.original_weights)
 
 
+def P300_Speller_liss(y_true, y_pred):
+    from keras import backend as K
+    return K.mean(y_pred - 0 * y_true)
+
+
 class CNN_MLP(GeneralModel):
     def __init__(self, positive_weight):
         super(CNN_MLP, self).__init__()
@@ -376,7 +473,11 @@ class CNN_MLP(GeneralModel):
         self.model.add(Activation('tanh'))
         self.model.add(Dense(2))
         self.model.add(Activation('softmax'))
-        self.model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+
+        if True:
+            self.model.compile(loss=P300_Speller_liss, optimizer='rmsprop')
+        else:
+            self.model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
         self.original_weights = self.model.get_weights()
         """ :type Sequential"""
 
