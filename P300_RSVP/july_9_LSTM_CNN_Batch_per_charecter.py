@@ -8,7 +8,8 @@ import cPickle as pickle
 # I should learn how to load libraries in a more elegant way
 
 
-
+import matplotlib.pyplot as plt
+import scipy
 from scipy import stats
 from sklearn.cross_validation import StratifiedShuffleSplit
 # from OriKerasExtension import ThesisHelper
@@ -265,6 +266,7 @@ def get_item_subgraph(input_shape, latent_dim):
 
 
 
+
     return model
 
 def get_user_subgraph(input_shape, latent_dim):
@@ -447,59 +449,101 @@ def create_data_rep_training(file_name,fist_time_stamp, last_time_stamp):
 
 data_base_dir = r'C:\Users\ORI\Documents\Thesis\dataset_all'
 if __name__ == "__main__":
-    subject = "RSVP_Color116msVPpia.mat"
 
-    file_name = os.path.join(data_base_dir, subject)
-    all_data_per_char, target_per_char, train_mode_per_block, all_data_per_char_as_matrix, target_per_char_as_matrix = create_data_rep_training(file_name,-200,800)
-    # all_data = create_data_for_compare_by_repetition(file_name)
+    all_subjects = ["RSVP_Color116msVPpia.mat",
+                    "RSVP_Color116msVPicr.mat",
+                    "RSVP_Color116msVPfat.mat",
+                    "RSVP_Color116msVPgcb.mat",
+                    "RSVP_Color116msVPgcc.mat",
+                    "RSVP_Color116msVPgcd.mat",
+                    "RSVP_Color116msVPgcf.mat",
+                    "RSVP_Color116msVPgcg.mat",
+                    "RSVP_Color116msVPgch.mat",
+                    "RSVP_Color116msVPiay.mat",
+                    "RSVP_Color116msVPicn.mat"];
+
+    for subject in all_subjects:
+        # subject = "RSVP_Color116msVPgcd.mat"
+
+        file_name = os.path.join(data_base_dir, subject)
+        all_data_per_char, target_per_char, train_mode_per_block, all_data_per_char_as_matrix, target_per_char_as_matrix = create_data_rep_training(file_name,-200,800)
+        # all_data = create_data_for_compare_by_repetition(file_name)
 
 
-    testing_data, testing_tags = get_all_triplet_combinations_testing(all_data_per_char_as_matrix, target_per_char_as_matrix, train_mode_per_block)
+        testing_data, testing_tags = get_all_triplet_combinations_testing(all_data_per_char_as_matrix, target_per_char_as_matrix, train_mode_per_block)
 
-    # gcd_res = readCompleteMatFile(file_name)
-    # repetition_eval = EvaluateByRepetition(file_name)
+        # gcd_res = readCompleteMatFile(file_name)
+        # repetition_eval = EvaluateByRepetition(file_name)
 
-    # training_data, train_tags, testing_data, test_tags, func_args = create_training_and_testing(gcd_res, -200, 800, 1, False)
+        # training_data, train_tags, testing_data, test_tags, func_args = create_training_and_testing(gcd_res, -200, 800, 1, False)
 
-    # input_dict = dict(
-    #     [["positive_item_input_{}".format(i), stats.zscore(training_data[30 * (i ):30 * (i + 2):30], axis=1)] for i in
-    #      range(60)])
+        # input_dict = dict(
+        #     [["positive_item_input_{}".format(i), stats.zscore(training_data[30 * (i ):30 * (i + 2):30], axis=1)] for i in
+        #      range(60)])
 
 
 
-    input_dict_testing = dict(
-        [["positive_item_input_{}".format(i), stats.zscore(testing_data[i], axis=1)] for i in
-         range(90)])
-
-    input_dict_testing['triplet_loss'] = testing_tags
-
-    model = get_graph(3, 10)
-
-    for epoch in range(4):
-        print "starting {0}".format(epoch)
-        training_data, train_tags = get_all_triplet_combinations(all_data_per_char_as_matrix, target_per_char_as_matrix,
-                                                                 train_mode_per_block)
-        input_dict = dict(
-            [["positive_item_input_{}".format(i), stats.zscore(training_data[i], axis=1)] for i in
+        input_dict_testing = dict(
+            [["positive_item_input_{}".format(i), stats.zscore(testing_data[i], axis=1)] for i in
              range(90)])
 
-        input_dict['triplet_loss'] = train_tags
-        model.fit(input_dict,
-                  nb_epoch=20,
-                  verbose=2,
-                  shuffle=True, validation_data=input_dict_testing)
+        input_dict_testing['triplet_loss'] = testing_tags
+
+        model = get_graph(3, 10)
 
 
 
 
+        for epoch in range(10):
+            print "starting {0}".format(epoch)
+            training_data, train_tags = get_all_triplet_combinations(all_data_per_char_as_matrix, target_per_char_as_matrix,
+                                                                     train_mode_per_block)
+            input_dict = dict(
+                [["positive_item_input_{}".format(i), stats.zscore(training_data[i], axis=1)] for i in
+                 range(90)])
+
+            input_dict['triplet_loss'] = train_tags
+            model.fit(input_dict,
+                      nb_epoch=20,
+                      verbose=2,
+                      shuffle=True, validation_split=0.1)
+        final_model = get_item_subgraph(None, None)
+        temp_weight = list(model.nodes['item_latent'].layer.get_weights())
+        final_model.compile(loss='binary_crossentropy', class_mode="binary", optimizer='sgd')
+        final_model.set_weights(temp_weight)
+        import theano.tensor as T
+
+        all_prediction = np.zeros((all_data_per_char[0][train_mode_per_block != 1].shape[0], 30))
+        for stimuli_i in range(30):
+            all_prediction[:,stimuli_i] = final_model.predict(stats.zscore(all_data_per_char[stimuli_i][train_mode_per_block != 1], axis=1)).flatten()
+            # input_dict = dict([["positive_item_input_{}".format(i),np.random.rand(1,55,200).astype(np.float32)] for i in range(60)])
+
+        plt.subplot(1, 4, 1)
+        plt.imshow(all_prediction, interpolation='none')
+        plt.subplot(1, 4, 2)
+        x = T.dmatrix('x')
+        import theano
+        softmax_res_func = theano.function([x], T.nnet.softmax(x))
+
+        # softmax_res = softmax_res_func(all_res)
+        # plt.imshow(softmax_res, interpolation='none')
+        # plt.show()
+        plt.imshow(softmax_res_func(all_prediction), interpolation='none')
+        plt.subplot(1, 4, 3)
+        plt.imshow(softmax_res_func(np.mean(all_prediction.reshape((-1, 10, 30)), axis=1)).astype(np.int), interpolation='none')
+
+        plt.subplot(1, 4, 4)
+        all_res = np.array([target_per_char[x][train_mode_per_block != 1] for x in range(30)]).T
+        plt.imshow(np.mean(all_res.reshape((-1, 10, 30)),axis=1), interpolation='none')
+        # plt.show()
 
 
-    # input_dict = dict([["positive_item_input_{}".format(i),np.random.rand(1,55,200).astype(np.float32)] for i in range(60)])
-
-
-
-
-    # target_per_char_as_matrix[0:10,:]
+        actual = np.where(np.round(softmax_res_func(np.mean(all_prediction.reshape((-1, 10, 30)), axis=1))) == 1)[0];
+        gt = np.where(np.mean(all_res.reshape((-1, 10, 30)), axis=1) == 1)[0]
+        np.intersect1d(actual, gt)
+        accuracy = len(np.intersect1d(actual, gt)) / float(len(gt))
+        print "subject:{0} accu:{1}".format(subject,accuracy)
+        # target_per_char_as_matrix[0:10,:]
 
 
 
@@ -507,12 +551,20 @@ if __name__ == "__main__":
 
 
     prediction_res = model.predict(input_dict_testing)
-    import matplotlib.pyplot as plt
-    plt.subplot(1, 2, 1)
+
+    plt.subplot(1, 3, 1)
     plt.imshow(prediction_res['triplet_loss'], interpolation='none')
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
+
+
+    plt.plot( 1 -  scipy.stats.entropy(prediction_res['triplet_loss'].T).reshape(-1, 1))
+
+
+    plt.subplot(1, 3, 3)
     plt.imshow(testing_tags, interpolation='none')
+    plt.tight_layout()
     plt.show()
+
     # print "temp"
     #
     #
